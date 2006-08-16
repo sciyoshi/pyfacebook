@@ -141,8 +141,6 @@ class Facebook(object):
 
 		args['sig'] = self._arg_hash(args)
 
-		print urllib.urlencode(args)
-
 		if method == 'facebook.auth.getSession':
 			xml = urllib2.urlopen('https://api.facebook.com/restserver.php', urllib.urlencode(args)).read()
 		else:
@@ -177,8 +175,8 @@ if __name__ == '__main__':
 	print 'Birthday: ', info['birthday']
 	print 'Gender: ', info['gender']
 
-	pokes = facebook.friends_get()
-	print pokes
+	friends = facebook.friends_get()
+	friends = facebook.users_getInfo(friends[0:5], ['name', 'birthday'])
 
-
-
+	for friend in friends:
+		print friend['name'], 'has a birthday on', friend['birthday']
