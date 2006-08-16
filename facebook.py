@@ -29,8 +29,8 @@ class Facebook(object):
 		self.secret = None
 
 	def auth_createToken(self):
-		res = self._call_method('facebook.auth.createToken')
-		self.auth_token = res['token']
+		result = self._call_method('facebook.auth.createToken', {})
+		self.auth_token = result['token']
 		return self.auth_token
 
 	def auth_getSession(self):
@@ -54,7 +54,7 @@ class Facebook(object):
 		return self._call_method('facebook.events.getInWindow', {'start_time': str(start), 'end_time': str(end)})
 
 	def pokes_getCount(self):
-		return self._call_method('facebook.pokes.getCount')
+		return self._call_method('facebook.pokes.getCount', {})
 
 	def photos_getAlbums(self, user=None):
 		if not user:
@@ -68,10 +68,10 @@ class Facebook(object):
 		return self._call_method('facebook.photos.getFromAlbum', {'aid': album})
 
 	def messages_getCount(self):
-		return self._call_method('facebook.messages.getCount')
+		return self._call_method('facebook.messages.getCount', {})
 
 	def friends_get(self):
-		return self._call_method('facebook.friends.get')
+		return self._call_method('facebook.friends.get', {})
 
 	def friends_areFriends(self, id1, id2):
 		return self._call_method('facebook.friends.areFriends', {'id1': id1, 'id2': id2})
@@ -177,7 +177,7 @@ if __name__ == '__main__':
 	print 'Birthday: ', info['birthday']
 	print 'Gender: ', info['gender']
 
-	pokes = facebook.pokes_getCount()
+	pokes = facebook.friends_get()
 	print pokes
 
 
