@@ -1,3 +1,20 @@
+"""
+Python bindings for the Facebook API
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+On Debian systems, the license can be found at 
+/usr/share/common-licenses/GPL.
+"""
+
 import urllib
 import urllib2
 import webbrowser
@@ -74,7 +91,7 @@ class Facebook(object):
 		return self._call_method('facebook.friends.get', {})
 
 	def friends_areFriends(self, id1, id2):
-		return self._call_method('facebook.friends.areFriends', {'id1': id1, 'id2': id2})
+		return self._call_method('facebook.friends.areFriends', {'id1': ','.join(id1), 'id2': ','.join(id2)})
 
 	def friends_getTyped(self, type):
 		return self._call_method('facebook.friends.getTyped', {'link_type': type})
@@ -126,8 +143,10 @@ class Facebook(object):
 #		hash.update(''.join([urllib.urlencode({key: args[key]}) for key in sorted(args.keys())]))
 		hash.update(''.join([key + '=' + args[key] for key in sorted(args.keys())]))
 		if self.secret:
+			print ''.join([key + '=' + args[key] for key in sorted(args.keys())]) + self.secret
 			hash.update(self.secret)
 		else:
+			print ''.join([key + '=' + args[key] for key in sorted(args.keys())]) + self.secret_key
 			hash.update(self.secret_key)
 		return hash.hexdigest()
 
@@ -145,13 +164,13 @@ class Facebook(object):
 			xml = urllib2.urlopen('https://api.facebook.com/restserver.php', urllib.urlencode(args)).read()
 		else:
 			xml = urllib2.urlopen('http://api.facebook.com/restserver.php', urllib.urlencode(args)).read()
+		print urllib.urlencode(args)
 
 		dom = parseString(xml)
 		self._check_error(dom)
 		result = self._parse_response_item(dom)['result']
 		dom.unlink()
 		return result
-
 
 
 if __name__ == '__main__':
@@ -172,11 +191,17 @@ if __name__ == '__main__':
 	info = facebook.users_getInfo([facebook.uid], ['name', 'birthday', 'affiliations', 'gender'])[0]
 
 	print 'Name: ', info['name']
+	print 'ID: ', facebook.uid
 	print 'Birthday: ', info['birthday']
 	print 'Gender: ', info['gender']
 
 	friends = facebook.friends_get()
-	friends = facebook.users_getInfo(friends[0:5], ['name', 'birthday'])
+	friends = facebook.users_getInfo(friends[0:5], ['name', 'birthday', 'relationship_status'])
 
 	for friend in friends:
-		print friend['name'], 'has a birthday on', friend['birthday']
+		print friend['name'], 'has a birthday on', friend['birthday'], 'and is', friend['relationship_status']
+
+	arefriends = facebook.friends_areFriends([friends[0]['id']], [friends[1]['id']])
+
+	photos = facebook.photos_getAlbums(friends[1]['id'])
+	print photos
