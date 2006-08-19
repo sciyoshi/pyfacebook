@@ -126,7 +126,7 @@ class Facebook(object):
 		result = {}
 		for item in filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes):
 			result[item.nodeName] = self._parse_response_item(item)
-		if node.hasAttributes():
+		if node.nodeType == node.ELEMENT_NODE and node.hasAttributes():
 			if node.hasAttribute('id'):
 				result['id'] = node.getAttribute('id')
 		return result
