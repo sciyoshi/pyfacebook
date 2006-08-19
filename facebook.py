@@ -44,6 +44,7 @@ class Facebook(object):
 		self.api_key = api_key
 		self.secret_key = secret_key
 		self.secret = None
+		self.auth_token = None
 
 	def auth_createToken(self):
 		result = self._call_method('facebook.auth.createToken', {})
@@ -54,7 +55,8 @@ class Facebook(object):
 		result = self._call_method('facebook.auth.getSession', {'auth_token': self.auth_token})
 		self.session_key = result['session_key']
 		self.uid = result['uid']
-		self.secret = result['secret']
+		# don't complain if there isn't a 'secret'. web apps don't have one
+		self.secret = result.get('secret')
 		return result
 
 	def wall_getCount(self, user=None):
@@ -101,8 +103,14 @@ class Facebook(object):
 			user = self.uid
 		return self._call_method('facebook.photos.getOfUser', {'id': user, 'max': str(max)})
 
+	def get_login_url(self):
+		url = 'http://api.facebook.com/login.php?api_key=' + self.api_key
+		if self.auth_token is not None:
+			url += '&auth_token=' + self.auth_token
+		return url
+	
 	def login(self):
-		webbrowser.open('http://api.facebook.com/login.php?api_key=' + self.api_key + '&auth_token=' + self.auth_token)
+		webbrowser.open(self.get_login_url)
 
 
 
