@@ -34,9 +34,8 @@ class FacebookError(Exception):
 	def __init__(self, code, msg):
 		self.code = code
 		self.msg = msg
-		print 'Error ' + code + ': ' + msg
 	def __str__(self):
-		return 'Error ' + code + ': ' + msg
+		return 'Error ' + self.code + ': ' + self.msg
 
 
 class Facebook(object):
