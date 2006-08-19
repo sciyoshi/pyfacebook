@@ -110,7 +110,7 @@ class Facebook(object):
 		return url
 	
 	def login(self):
-		webbrowser.open(self.get_login_url)
+		webbrowser.open(self.get_login_url())
 
 
 
