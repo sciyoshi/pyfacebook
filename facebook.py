@@ -147,13 +147,10 @@ class Facebook(object):
 
 	def _arg_hash(self, args):
 		hash = md5.new()
-#		hash.update(''.join([urllib.urlencode({key: args[key]}) for key in sorted(args.keys())]))
 		hash.update(''.join([key + '=' + args[key] for key in sorted(args.keys())]))
 		if self.secret:
-			print ''.join([key + '=' + args[key] for key in sorted(args.keys())]) + self.secret
 			hash.update(self.secret)
 		else:
-			print ''.join([key + '=' + args[key] for key in sorted(args.keys())]) + self.secret_key
 			hash.update(self.secret_key)
 		return hash.hexdigest()
 
@@ -171,7 +168,6 @@ class Facebook(object):
 			xml = urllib2.urlopen('https://api.facebook.com/restserver.php', urllib.urlencode(args)).read()
 		else:
 			xml = urllib2.urlopen('http://api.facebook.com/restserver.php', urllib.urlencode(args)).read()
-		print urllib.urlencode(args)
 
 		dom = parseString(xml)
 		self._check_error(dom)
