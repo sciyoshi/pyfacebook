@@ -138,7 +138,7 @@ class Facebook(object):
 		
 
 	def _check_error(self, result):
-		if result.has_key('fb_error'):
+		if type(result) is dict and result.has_key('fb_error'):
 			raise FacebookError, result['fb_error']
 		return True
 
