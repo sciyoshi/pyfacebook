@@ -31,11 +31,11 @@ def _get_element_text(elem):
 
 class FacebookError(Exception):
 	"""Exception class for errors received from Facebook."""
-	def __init__(self, code, msg):
-		self.code = code
-		self.msg = msg
+	def __init__(self, info):
+		self.info = info
 	def __str__(self):
-		return 'Error ' + self.code + ': ' + self.msg
+		return ('Error ' + self.info['code'] + ': ' + self.info['msg'] + ' (' +
+				self.info['your_request']['method'] + ')')
 
 
 class Facebook(object):
@@ -137,12 +137,9 @@ class Facebook(object):
 		return result
 		
 
-	def _check_error(self, dom):
-		error = dom.getElementsByTagName('fb_error')
-		if len(error) != 0:
-			code = _get_element_text(error[0].getElementsByTagName('code')[0])
-			msg = _get_element_text(error[0].getElementsByTagName('msg')[0])
-			raise FacebookError(code, msg)
+	def _check_error(self, result):
+		if result.has_key('fb_error'):
+			raise FacebookError, result['fb_error']
 		return True
 
 	def _arg_hash(self, args):
@@ -170,9 +167,9 @@ class Facebook(object):
 			xml = urllib2.urlopen('http://api.facebook.com/restserver.php', urllib.urlencode(args)).read()
 
 		dom = parseString(xml)
-		self._check_error(dom)
 		result = self._parse_response_item(dom)['result']
 		dom.unlink()
+		self._check_error(result)
 		return result
 
 
