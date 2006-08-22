@@ -183,37 +183,3 @@ class Facebook(object):
 		dom.unlink()
 		self._check_error(result)
 		return result
-
-
-if __name__ == '__main__':
-	api_key = '1977d4ec72ee22eefb6c1ab26016e1e7'
-	secret_key = '33bdd420a11c4d470cd2483ee9b08f09'
-
-	facebook = Facebook(api_key, secret_key)
-
-	facebook.auth_createToken()
-	# Show login window
-	facebook.login()
-
-	# Login to the window, then press enter
-	print 'After logging in, press enter...'
-	raw_input()
-
-	facebook.auth_getSession()
-	info = facebook.users_getInfo([facebook.uid], ['name', 'birthday', 'affiliations', 'gender'])[0]
-
-	print 'Name: ', info['name']
-	print 'ID: ', facebook.uid
-	print 'Birthday: ', info['birthday']
-	print 'Gender: ', info['gender']
-
-	friends = facebook.friends_get()
-	friends = facebook.users_getInfo(friends[0:5], ['name', 'birthday', 'relationship_status'])
-
-	for friend in friends:
-		print friend['name'], 'has a birthday on', friend['birthday'], 'and is', friend['relationship_status']
-
-	arefriends = facebook.friends_areFriends([friends[0]['id']], [friends[1]['id']])
-
-	photos = facebook.photos_getAlbums(friends[1]['id'])
-	print photos
