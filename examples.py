@@ -3,8 +3,7 @@
 # -----------------------
 
 def simple_web_app(request, api_key, secret_key):
-    fb = Facebook(api_key, secret_key)
-    fb.auth_token = request.GET['auth_token']
+    fb = Facebook(api_key, secret_key, request.GET['auth_token'])
     fb.auth_getSession()
 
     friend_ids = fb.friends_get()

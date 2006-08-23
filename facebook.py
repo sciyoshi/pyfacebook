@@ -51,11 +51,11 @@ class FacebookError(Exception):
 
 
 class Facebook(object):
-	def __init__(self, api_key, secret_key):
+	def __init__(self, api_key, secret_key, auth_token=None):
 		self.api_key = api_key
 		self.secret_key = secret_key
 		self.secret = None
-		self.auth_token = None
+		self.auth_token = auth_token
 
 	def auth_createToken(self):
 		result = self._call_method('facebook.auth.createToken', {})
