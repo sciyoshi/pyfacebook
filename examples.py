@@ -2,13 +2,28 @@
 # Web application example
 # -----------------------
 
+def simple_web_app(request, api_key, secret_key):
+    fb = Facebook(api_key, secret_key)
+    fb.auth_token = request.GET['auth_token']
+    fb.auth_getSession()
+
+    friend_ids = fb.friends_get()
+    info = fb.users_getInfo(friend_ids, ['name', 'pic'])
+
+    print '<html><body>'
+    for friend in info:
+        print '<a href="%(pic)s">%(name)s</a>' % friend
+    print '</body></html>'
+
 def web_app(request):
     """Get the user's friends and their pictures. This example uses
        the Django web framework, but should be adaptable to others."""
 
     # Get api_key and secret_key from a file
-    fbs = open(FB_SETTINGS).readlines()
-    fb = Facebook(fbs[0].strip(), fbs[1].strip())
+    fb_file = open('facebook_keys.txt').readlines()
+    api_key = fb_file[0].strip()
+    secret_key = fb_file[1].strip()
+    fb = Facebook(api_key, secret_key)
 
     # Use the data from the cookie if present
     if 'session_key' in request.session and 'uid' in request.session:
