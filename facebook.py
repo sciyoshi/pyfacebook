@@ -33,6 +33,7 @@ import urllib
 import urllib2
 import webbrowser
 import md5
+
 from time import time
 from xml.dom.minidom import parseString
 
@@ -47,20 +48,186 @@ class FacebookError(Exception):
     """Exception class for errors received from Facebook."""
     def __init__(self, info):
         self.info = info
+    
+    def __repr__(self):
+        return str(self)
+    
     def __str__(self):
-        return ('Error ' + self.info['error_code'] + ': ' + self.info['error_msg'] + ' (' +
-                self.info['request_args']['arg']['value'] + ')')
+        return 'Error %s: %s (%s)' % (
+            self.info['error_code'],
+            self.info['error_msg'],
+            ', '.join(
+               '%s = %s' % (arg['key'], arg['value']) for arg in self.info['request_args'].values()))
 
 
 class Facebook(object):
+    _special_methods = ['auth.createToken', 'auth.getSession', 'photos.upload']
+
+    _methods = {
+        # AUTH methods
+        'auth.createToken': [],
+        'auth.getSession': [],
+        
+        # FQL methods
+        'fql.query':
+        [
+            ('query', str, []),
+        ],
+        
+        # EVENTS methods
+        'events.get':
+        [
+            ('uid', int, ['optional']),
+            ('eids', list, ['optional']),
+            ('start_time', int, ['optional']),
+            ('end_time', int, ['optional']),
+            ('rsvp_status', str, ['optional']),
+        ],
+        
+        'events.getMembers':
+        [
+            ('eid', int, []),
+        ],
+        
+        # FRIENDS methods
+        'friends.areFriends':
+        [
+            ('uids1', list, []),
+            ('uids2', list, []),
+        ],
+        
+        'friends.get': [],
+        
+        'friends.getAppUsers': [],
+        
+        # GROUPS methods
+        'groups.get':
+        [
+            ('uid', int, ['optional']),
+            ('gids', list, ['optional']),
+        ],
+        
+        'groups.getMembers':
+        [
+            ('gid', int, [])
+        ],
+        
+        # NOTIFICATIONS methods
+        'notifications.get': [],
+        
+        # PHOTOS methods
+        'photos.addTag':
+        [
+            ('pid', int, []),
+            ('tag_uid', int, [('default', 0)]),
+            ('tag_text', str, [('default', '')]),
+            ('x', float, [('default', 50)]),
+            ('y', float, [('default', 50)]),
+            ('tags', str, ['optional']),
+        ],
+        
+        'photos.createAlbum':
+        [
+            ('name', str, []),
+            ('location', str, ['optional']),
+            ('description', str, ['optional']),
+        ],
+        
+        'photos.get':
+        [
+            ('subj_id', int, ['optional']),
+            ('aid', int, ['optional']),
+            ('pids', list, ['optional']),
+        ],
+        
+        'photos.getAlbums':
+        [
+            ('uid', int, ['optional']),
+            ('pids', list, ['optional']),
+        ],
+        
+        'photos.getTags':
+        [
+            ('pids', list, []),
+        ],
+        
+        'photos.upload':
+        [
+            ('aid', int, ['optional']),
+            ('caption', str, ['optional']),
+            ('', None, []),
+        ],
+        
+        # UPDATE methods
+        'update.decodeIDs':
+        [
+            ('ids', list, []),
+        ],
+        
+        # USERS methods
+        'users.getInfo':
+        [
+            ('uids', list, []),
+            ('fields', list, [('default', ['name'])]),
+        ],
+        
+        'users.getLoggedInUser': [],
+    }
+    
     def __init__(self, api_key, secret_key, auth_token=None):
         self.api_key = api_key
         self.secret_key = secret_key
         self.secret = None
         self.auth_token = auth_token
 
+    for method_name in sorted(_methods.keys()):
+        if method_name in _special_methods:
+            continue
+        
+        signature = 'def ' + method_name.replace('.', '_') + '(self'
+        
+        indent1 = '\n'
+        indent2 = indent1 + '    '
+        indent3 = indent2 + '    '
+        
+        body = ''
+        
+        for param_name, param_type, param_options in _methods[method_name]:
+            signature += ', ' + param_name
+            
+            for option in param_options:
+                # Check for defaults:
+                if isinstance(option, tuple):
+                    if option[0] == 'default':
+                        if param_type == list:
+                            signature += '=None'
+                            body += indent2 + 'if ' + param_name + ' == None:'
+                            body += indent3 + param_name + ' = ' + repr(option[1])
+                        else:
+                            signature += '=' + repr(option[1])
+                            
+            if 'optional' in param_options:
+                signature += '=None'
+                body += indent2 + 'if ' + param_name + ' is not None:'
+                body += indent3 + 'params["' + param_name + '"] = ' + param_name 
+            else:
+                body += indent2 + 'params["' + param_name + '"] = ' + param_name
 
-    #AUTH
+        signature += '):'
+
+        body += indent2 + 'return self._call_method("facebook.' + method_name + '"'
+        
+        if _methods[method_name] != []:
+            body = indent2 + 'params = {}' + body
+            body += ', params'
+
+        body += ')'
+
+        definition = signature + body
+
+        exec definition
+
+    # AUTH methods
     def auth_createToken(self):
         result = self._call_method('facebook.auth.createToken')
         self.auth_token = result
@@ -76,105 +243,7 @@ class Facebook(object):
         self.secret = result.get('secret')
         return result
 
-
-    #EVENTS
-    def events_get(self, uid, eids, start, end, rsvp_status):
-        return self._call_method('facebook.events.get', {
-            'uid': uid,
-            'eids': eids,
-            'start_time': start, 
-            'end_time': end,
-            'rsvp_status': rsvp_status
-            })
-    
-    def events_getMembers(self, eid):
-        return self._call_method('facebook.events.getMembers', {
-            'eid': eid
-            })
-
-
-    #FRIENDS
-    def friends_get(self):
-        return self._call_method('facebook.friends.get')
-
-    def friends_areFriends(self, id1, id2):
-        return self._call_method('facebook.friends.areFriends', {
-            'uids1': ','.join(id1), 
-            'uids2': ','.join(id2)
-            })
-
-    def friends_getAppUsers(self, type):
-        return self._call_method('facebook.friends.getAppUsers')
-
-
-    #GROUPS
-    def groups_get(self, uid="", gids=[]):
-        #int(uid) - Optional - Filter by groups associated with a user with this uid
-        #array(gids) - Optional - Filter by this list of group ids
-        return self._call_method('facebook.groups.get', {
-            'uid': uid,
-            'gids': ','.join(gids)
-            })
-    def groups_getMembers(self, gid):
-        return self._call_method('facebook.groups.getmembers', {
-            'gid': gid
-            })
-        
-    
-    #NOTIFICATIONS
-    def notifications_get(self):
-        #returns messages, pokes, shares, friend_requests, group_invites, event_invites
-        return self._call_method('facebook.notifications.get')
-    
-    
-    #PHOTOS
-    def photos_get(self, subj_id="", aid="", pids=[]):
-        #int(subj_id) - Optional - Filter by photos associated tagged with this user
-        #int(aid) - Optional - Filter by photos in this album
-        #array(pids) - Optional - Filter by photos in this list. 
-        
-        if subj_id=="" and aid=="" and len(pids)==0:
-            subj_id=self.uid
-        return self._call_method('facebook.photos.get', {
-            'subj_id': subj_id,
-            'aid': aid,
-            'pids': ','.join(pids)
-            })
-                
-    def photos_getAlbums(self, uid="", pids=[]):
-        #int(uid) - Optional - Return albums created by this user.
-        #array(pids) - Optional - Return albums with aids in this list. 
-        return self._call_method('facebook.photos.getAlbums', {
-            'uid': uid, 
-            'pids': ','.join(pids)
-            })
-    
-    def photos_getTags(self, pids):
-        return self._call_method('facebook.photos.getTags', {
-            'pids': ','.join(pids)
-            })
-
-    #UPDATE
-    def update_decodeIDs(self, ids):
-        return self._call_method('facebook.update.decodeIDs', {
-            'ids':  ','.join(ids) 
-            })
-
-
-    #USERS
-    def users_getInfo(self, uids=None, fields=['name']):
-        if not uids:
-            uids = [self.uid]
-        return self._call_method('facebook.users.getInfo', {
-            'uids': ','.join(uids), 
-            'fields': ','.join(fields)
-            })
-                
-    def users_getLoggedInUser(self):
-        return self._call_method('facebook.users.getLoggedInUser')
-
-
-    #URL FUNCTIONS    
+    # URL methods    
     def get_login_url(self, next=None):
         url = 'http://api.facebook.com/login.php?api_key=' + self.api_key
         url += '&v=1.0'
@@ -188,14 +257,13 @@ class Facebook(object):
         webbrowser.open(self.get_login_url())
 
 
-    #LINK FUNCTION
+    # LINK method
     def link(self, link_type='profile', **kwargs):
-        return 'http://www.facebook.com/%s.php?%s'%(link_type, urllib.urlencode(kwargs))
+        return 'http://www.facebook.com/%s.php?%s' % (link_type, urllib.urlencode(kwargs))
 
 
 
     def _parse_response_item(self, node):
-        #~ if len(filter(lambda x: x.nodeType == x.ELEMENT_NODE and x.nodeName.endswith('_elt'), node.childNodes)) > 0:
         if node.nodeType==node.DOCUMENT_NODE and node.childNodes[0].hasAttributes() and node.childNodes[0].hasAttribute('list') and node.childNodes[0].getAttribute('list')=="true":
             return {node.childNodes[0].nodeName: self._parse_response_list(node.childNodes[0])}
         elif node.nodeType==node.ELEMENT_NODE and node.hasAttributes() and node.hasAttribute('list') and node.getAttribute('list')=="True":
@@ -235,10 +303,17 @@ class Facebook(object):
             hash.update(self.secret_key)
         return hash.hexdigest()
 
-    def _call_method(self, method, args={}):
+    def _call_method(self, method, args=None):
+        if args == None:
+            args = {}
+    
+        for key in args.keys():
+            if isinstance(args[key], list):
+                args[key] = ','.join(args[key])
+
         args['api_key'] = self.api_key
         args['method'] = method
-        args['v']='1.0' #important for version 1 use
+        args['v'] = '1.0'
 
         if method not in ['facebook.auth.createToken', 'facebook.auth.getSession']:
             args['session_key'] = self.session_key
@@ -259,8 +334,8 @@ class Facebook(object):
 
 
 if __name__=="__main__":
-    api_key=""
-    secret=""
+    api_key = ""
+    secret = ""
     facebook = Facebook(api_key, secret)
     
     facebook.auth_createToken()
@@ -282,6 +357,11 @@ if __name__=="__main__":
     print 'Birthday: ', info['birthday']
     print 'Gender: ', info['sex']
 
+    for thing in facebook.fql_query(
+        'SELECT concat(first_name, " ", last_name, ": ", birthday) FROM user \
+         WHERE uid IN (SELECT uid2 FROM friend WHERE uid1=' + facebook.uid + ') AND strlen(last_name) = 7'):
+         print thing['anon']
+
     friends = facebook.friends_get()
     friends = facebook.users_getInfo(friends[0:5], ['name', 'birthday', 'relationship_status'])
 
@@ -291,5 +371,5 @@ if __name__=="__main__":
     arefriends = facebook.friends_areFriends([friends[0]['uid']], [friends[1]['uid']])
     print arefriends
 
-    photos = facebook.photos_getAlbums(friends[3]['uid'])
+    photos = facebook.photos_getAlbums(facebook.uid)
     print photos
