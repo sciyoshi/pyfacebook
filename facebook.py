@@ -31,8 +31,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import urllib
 import urllib2
+import httplib
+import mimetypes
 import webbrowser
 import md5
+import base64
 
 from time import time
 from xml.dom.minidom import parseString
@@ -243,6 +246,64 @@ class Facebook(object):
         self.secret = result.get('secret')
         return result
 
+    def photos_upload(self, image, aid=None, caption=None):
+        args = {}
+        
+        if aid is not None:
+            args['aid'] = aid
+
+        if caption is not None:
+            args['caption'] = caption
+
+        args['api_key'] = self.api_key
+        args['method'] = 'facebook.photos.upload'
+        args['v'] = '1.0'
+
+        args['session_key'] = self.session_key
+        args['call_id'] = str(int(time() * 1000))
+
+        args['sig'] = self._arg_hash(args)
+
+        content_type, body = self._encode_multipart_formdata(list(args.iteritems()), [(image, file(image).read())])
+        h = httplib.HTTP('api.facebook.com')
+        h.putrequest('POST', '/restserver.php')
+        h.putheader('content-type', content_type)
+        h.putheader('content-length', str(len(body)))
+        h.endheaders()
+        h.send(body)
+        print h.getreply()
+        dom = parseString(h.file.read())
+        result = self._parse_response_item(dom)
+        dom.unlink()
+        self._check_error(result)
+        return result['photos_upload_response']
+    	
+    def _encode_multipart_formdata(self, fields, files):
+        boundary = '----------ThIs_Is_tHe_bouNdaRY_$'
+        crlf = '\r\n'
+        l = []
+        
+        for (key, value) in fields:
+            l.append('--' + boundary)
+            l.append('Content-Disposition: form-data; name="%s"' % key)
+            l.append('')
+            l.append(value)
+        for (filename, value) in files:
+            l.append('--' + boundary)
+            l.append('Content-Disposition: form-data; filename="%s"' % (filename, ))
+            l.append('Content-Transfer-Encoding: base64')
+            l.append('Content-Type: %s' % self._get_content_type(filename))
+            l.append('')
+            l.append(base64.b64encode(value))
+        l.append('--' + boundary + '--')
+        l.append('')
+        body = crlf.join(l)
+        content_type = 'multipart/form-data; boundary=%s' % boundary
+        return content_type, body
+
+    def _get_content_type(self, filename):
+        return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+	    
     # URL methods    
     def get_login_url(self, next=None):
         url = 'http://api.facebook.com/login.php?api_key=' + self.api_key
@@ -260,7 +321,6 @@ class Facebook(object):
     # LINK method
     def link(self, link_type='profile', **kwargs):
         return 'http://www.facebook.com/%s.php?%s' % (link_type, urllib.urlencode(kwargs))
-
 
 
     def _parse_response_item(self, node):
@@ -330,12 +390,12 @@ class Facebook(object):
         result = self._parse_response_item(dom)
         dom.unlink()
         self._check_error(result)
-        return result[method[9:].replace(".", "_")+"_response"]
+        return result[method[9:].replace('.', '_') + '_response']
 
 
 if __name__=="__main__":
-    api_key = ""
-    secret = ""
+    api_key = "1977d4ec72ee22eefb6c1ab26016e1e7"
+    secret = "33bdd420a11c4d470cd2483ee9b08f09"
     facebook = Facebook(api_key, secret)
     
     facebook.auth_createToken()
@@ -361,6 +421,8 @@ if __name__=="__main__":
         'SELECT concat(first_name, " ", last_name, ": ", birthday) FROM user \
          WHERE uid IN (SELECT uid2 FROM friend WHERE uid1=' + facebook.uid + ') AND strlen(last_name) = 7'):
          print thing['anon']
+
+    print facebook.photos_upload('Vista.jpg')
 
     friends = facebook.friends_get()
     friends = facebook.users_getInfo(friends[0:5], ['name', 'birthday', 'relationship_status'])
