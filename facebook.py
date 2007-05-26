@@ -117,6 +117,12 @@ class Facebook(object):
         
         # NOTIFICATIONS methods
         'notifications.get': [],
+
+        # FBML methods
+        [
+            ('markup', str, []),
+            ('uid', int, ['optional']),
+        ]
         
         # PHOTOS methods
         'photos.addTag':
