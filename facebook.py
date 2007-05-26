@@ -118,7 +118,8 @@ class Facebook(object):
         # NOTIFICATIONS methods
         'notifications.get': [],
 
-        # FBML methods
+        # PROFILE methods
+        'profile.setFBML':
         [
             ('markup', str, []),
             ('uid', int, ['optional']),
