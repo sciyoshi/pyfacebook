@@ -123,7 +123,7 @@ class Facebook(object):
         [
             ('markup', str, []),
             ('uid', int, ['optional']),
-        ]
+        ],
         
         # PHOTOS methods
         'photos.addTag':
