@@ -394,8 +394,8 @@ class Facebook(object):
 
 
 if __name__=="__main__":
-    api_key = "1977d4ec72ee22eefb6c1ab26016e1e7"
-    secret = "33bdd420a11c4d470cd2483ee9b08f09"
+    api_key = ""
+    secret = ""
     facebook = Facebook(api_key, secret)
     
     facebook.auth_createToken()
