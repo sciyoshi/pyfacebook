@@ -1,1 +1,18 @@
-Congratulations!
+<fb:header>
+  Welcome, {{ name }}!
+</fb:header>
+
+<div class="clearfix" style="float: left; border: 1px #d8dfea solid; padding: 10px 10px 10px 10px; margin-left: 30px; margin-bottom: 30px; width: 500px;">
+  This is the sample PyFaceBook application.
+  <br /><br />
+
+  <div class="grayheader clearfix">
+    Display something on your profile:
+    <br /><br />
+
+    <form method="post" action="http://server02.boknow.com/pyfacebook_sample/facebook/post/">
+      <input name="profile_text" type="text" class="inputtext" />
+      <input type="submit" class="inputsubmit" value="Post!" />
+    </form>
+  </div>
+</div>

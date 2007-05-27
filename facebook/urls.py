@@ -12,4 +12,7 @@ urlpatterns = patterns('',
     # page. For example, post_add will be called when a user
     # has added the application.
     (r'^post_add/', project + '.facebook.views.post_add'),
+
+    # Some functionality - users can post text to their homepage
+    (r'^post/', project + '.facebook.views.post'),
 )
