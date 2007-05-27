@@ -358,6 +358,17 @@ class Facebook(object):
         return 'http://www.facebook.com/%s.php?%s' % (link_type, urllib.urlencode(kwargs))
 
 
+    def validate_signature(self, post, prefix='fb_sig'):
+        '''
+        Validate POST parameters passed to an internal Facebook app from Facebook.
+        '''
+        args = post.copy()
+        del args[prefix]
+
+        hash = self.arg_hash(dict([(key[len(prefix + '_'):], value) for key, value in post.items()]))
+
+        return hash == post[prefix]
+
     def _parse_response_item(self, node):
         if node.nodeType==node.DOCUMENT_NODE and node.childNodes[0].hasAttributes() and node.childNodes[0].hasAttribute('list') and node.childNodes[0].getAttribute('list')=="true":
             return {node.childNodes[0].nodeName: self._parse_response_list(node.childNodes[0])}
