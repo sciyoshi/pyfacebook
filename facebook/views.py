@@ -17,8 +17,11 @@ def canvas(request):
         params = fb.validate_signature(request.POST)
 
         # Error validating, redirect to our site
-        if not params:
-            return HttpResponseRedirect('http://server02.boknow.com/pyfacebook_sample/facebook/canvas/')
+        if not params or 'session_key' not in params or 'user' not in params:
+            if params and params['in_canvas'] == '1':
+                return HttpResponse('<fb:redirect url=' + fb.link('tos', api_key=api_key, v='1.0') + ' />')
+
+            return HttpResponseRedirect(fb.link('tos', api_key=api_key, v='1.0'))
     else:
         # We're being viewed outside of Facebook
         if 'auth_token' in request.GET:
@@ -44,8 +47,11 @@ def post(request):
         params = fb.validate_signature(request.POST)
 
         # Error validating, redirect to our site
-        if not params:
-            return HttpResponseRedirect('http://server02.boknow.com/pyfacebook_sample/facebook/canvas/')
+        if not params or 'session_key' not in params or 'user' not in params:
+            if params and params['in_canvas'] == '1':
+                return HttpResponse('<fb:redirect url=' + fb.link('tos', api_key=api_key, v='1.0') + ' />')
+
+            return HttpResponseRedirect(fb.link('tos', api_key=api_key, v='1.0'))
     else:
         # We're being viewed outside of Facebook
         if 'auth_token' in request.GET:
@@ -71,21 +77,24 @@ def post_add(request):
         params = fb.validate_signature(request.POST)
 
         # Error validating, redirect to our site
-        if not params:
-            return HttpResponseRedirect('http://server02.boknow.com/pyfacebook_sample/facebook/canvas/')
+        if not params or 'session_key' not in params or 'user' not in params:
+            if params and params['in_canvas'] == '1':
+                return HttpResponse('<fb:redirect url=' + fb.link('tos', api_key=api_key, v='1.0') + ' />')
+
+            return HttpResponseRedirect(fb.link('tos', api_key=api_key, v='1.0'))
+
+        return HttpResponseRedirect(fb.link('profile', id=fb.uid))
     else:
         # We're being viewed outside of Facebook
-        if 'auth_token' in request.GET:
-            return HttpResponseRedirect('http://apps.facebook.com/pyfacebook/')
+        if 'auth_token' not in request.GET:
+            return HttpResponseRedirect('http://www.facebook.com/login.php?' +
+                urllib.urlencode({'v': '1.0', 'api_key': api_key}))
 
-        # Request a login
-        return HttpResponseRedirect('http://www.facebook.com/login.php?' +
-            urllib.urlencode({'v': '1.0', 'api_key': api_key}))
+        fb = Facebook(api_key, secret_key, request.GET['auth_token'])
 
-    fb.session_key = params['session_key']
-    fb.uid = params['user']
+        fb.auth_getSession()
 
-    fb.profile_setFBML('Congratulations on adding PyFaceBook. Please click on the PyFaceBook link on the left side to change this text.', fb.uid)
+        fb.profile_setFBML('Congratulations on adding PyFaceBook. Please click on the PyFaceBook link on the left side to change this text.', fb.uid)
 
-    return HttpResponseRedirect(fb.link('profile', id=fb.uid))
+        return HttpResponseRedirect(fb.link('profile', id=fb.uid))
 
