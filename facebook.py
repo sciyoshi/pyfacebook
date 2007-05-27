@@ -143,12 +143,12 @@ class Facebook(object):
 
         'fbml.refreshImgSrc':
         [
-            ('url', str, [']),
+            ('url', str, []),
         ],
 
         'fbml.refreshRefUrl':
         [
-            ('url', str, [']),
+            ('url', str, []),
         ],
 
         # PHOTOS methods
