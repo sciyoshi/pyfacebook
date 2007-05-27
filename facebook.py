@@ -297,7 +297,7 @@ class Facebook(object):
         args['session_key'] = self.session_key
         args['call_id'] = str(int(time() * 1000))
 
-        args['sig'] = self._arg_hash(args)
+        args['sig'] = self.arg_hash(args)
 
         content_type, body = self._encode_multipart_formdata(list(args.iteritems()), [(image, file(image).read())])
         h = httplib.HTTP('api.facebook.com')
@@ -389,7 +389,7 @@ class Facebook(object):
             raise FacebookError, result['error_response']
         return True
 
-    def _arg_hash(self, args):
+    def arg_hash(self, args):
         hash = md5.new()
         hash.update(''.join([key + '=' + args[key] for key in sorted(args.keys())]))
         if self.secret:
@@ -414,7 +414,7 @@ class Facebook(object):
             args['session_key'] = self.session_key
             args['call_id'] = str(int(time() * 1000))
 
-        args['sig'] = self._arg_hash(args)
+        args['sig'] = self.arg_hash(args)
 
         if method == 'facebook.auth.getSession':
             xml = urllib2.urlopen('https://api.facebook.com/restserver.php', urllib.urlencode(args)).read()
