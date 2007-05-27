@@ -5,8 +5,9 @@ import urllib
 
 from facebook import Facebook
 
-api_key = '4caee2449ac74758ff8e49064c5770bb'
-secret_key = '1698edd7ec096affe0928d071f3d1a22'
+# Fill in your API and secret keys here
+api_key = ''
+secret_key = ''
 
 def canvas(request):
     # Create a new Facebook object with our keys
