@@ -365,7 +365,7 @@ class Facebook(object):
         args = post.copy()
         del args[prefix]
 
-        hash = self.arg_hash(dict([(key[len(prefix + '_'):], value) for key, value in post.items()]))
+        hash = self.arg_hash(dict([(key[len(prefix + '_'):], value) for key, value in args.items()]))
 
         return hash == post[prefix]
 
