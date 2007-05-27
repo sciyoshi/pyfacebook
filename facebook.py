@@ -118,13 +118,39 @@ class Facebook(object):
         # NOTIFICATIONS methods
         'notifications.get': [],
 
+        'notifications.send':
+        [
+            ('to_ids', list, []),
+            ('markup', str, []),
+            ('no_email', bool, []),
+        ],
+
+        'notifications.sendRequest':
+        [
+            ('to_ids', list, []),
+            ('type', str, []),
+            ('content', str, []),
+            ('image', str, []),
+            ('invite', bool, []),
+        ],
+
         # PROFILE methods
         'profile.setFBML':
         [
             ('markup', str, []),
             ('uid', int, ['optional']),
         ],
-        
+
+        'fbml.refreshImgSrc':
+        [
+            ('url', str, [']),
+        ],
+
+        'fbml.refreshRefUrl':
+        [
+            ('url', str, [']),
+        ],
+
         # PHOTOS methods
         'photos.addTag':
         [
@@ -182,6 +208,8 @@ class Facebook(object):
         ],
         
         'users.getLoggedInUser': [],
+
+        'users.isAppAdded': [],
     }
     
     def __init__(self, api_key, secret_key, auth_token=None):
