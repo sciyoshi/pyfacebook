@@ -36,6 +36,7 @@ import mimetypes
 import webbrowser
 import md5
 import base64
+import time
 
 from time import time
 from xml.dom.minidom import parseString
@@ -358,16 +359,24 @@ class Facebook(object):
         return 'http://www.facebook.com/%s.php?%s' % (link_type, urllib.urlencode(kwargs))
 
 
-    def validate_signature(self, post, prefix='fb_sig'):
+    def validate_signature(self, post, prefix='fb_sig', timeout=None):
         '''
         Validate POST parameters passed to an internal Facebook app from Facebook.
         '''
         args = post.copy()
         del args[prefix]
 
-        hash = self.arg_hash(dict([(key[len(prefix + '_'):], value) for key, value in args.items() if key.startswith(prefix)]))
+        if timeout and prefix + '_time' in post and time.time() - float(post[prefix + '_time']) > timeout:
+            return None
 
-        return hash == post[prefix]
+        args = dict([(key[len(prefix + '_'):], value) for key, value in args.items() if key.startswith(prefix)])
+
+        hash = self.arg_hash(args)
+
+        if hash == post[prefix]:
+            return args
+        else:
+            return None
 
     def _parse_response_item(self, node):
         if node.nodeType==node.DOCUMENT_NODE and node.childNodes[0].hasAttributes() and node.childNodes[0].hasAttribute('list') and node.childNodes[0].getAttribute('list')=="true":
