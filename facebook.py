@@ -37,6 +37,7 @@ import webbrowser
 import md5
 import base64
 import time
+import cgi
 
 from time import time
 from xml.dom.minidom import parseString
@@ -217,6 +218,7 @@ class Facebook(object):
         self.api_key = api_key
         self.secret_key = secret_key
         self.secret = None
+        self.in_canvas = False
         self.auth_token = auth_token
 
     for method_name in sorted(_methods.keys()):
@@ -349,6 +351,9 @@ class Facebook(object):
         if self.auth_token is not None:
             url += '&auth_token=' + self.auth_token
         return url
+
+    def get_app_url(self, appname):
+        return 'http://apps.facebook.com/%s/' % appname
     
     def login(self):
         webbrowser.open(self.get_login_url())
@@ -358,6 +363,45 @@ class Facebook(object):
     def link(self, link_type='profile', **kwargs):
         return 'http://www.facebook.com/%s.php?%s' % (link_type, urllib.urlencode(kwargs))
 
+
+    def redirect(self, url):
+        from django.http import HttpResponse, HttpResponseRedirect
+
+        if self.in_canvas:
+            return HttpResponse('<fb:redirect url="%s" />' % (url, ))
+        else:
+            return HttpResponseRedirect(url)
+
+
+    def check_session(self, request, next=''):
+        from django.http import HttpResponse, HttpResponseRedirect
+
+        if request.method == 'POST':
+            self.params = self.validate_signature(request.POST)
+
+            if 'fb_sig_in_canvas' in request.POST and request.POST['fb_sig_in_canvas'] == '1':
+                self.in_canvas = True
+
+            if not self.params or 'session_key' not in self.params or 'user' not in self.params:
+                return self.redirect(self.link('tos', api_key=self.api_key, v='1.0', next=next))
+
+            self.session_key = self.params['session_key']
+            self.uid = self.params['user']
+
+            if 'in_canvas' in self.params:
+                self.in_canvas = self.params['in_canvas'] == '1'
+
+        else:
+            if 'auth_token' in request.GET:
+                self.auth_token = request.GET['auth_token']
+
+                try:
+                    self.auth_getSession()
+                except:
+                    return self.redirect(self.get_login_url(next=next))
+
+            else:
+                return self.redirect(self.get_login_url(next=next))
 
     def validate_signature(self, post, prefix='fb_sig', timeout=None):
         '''
