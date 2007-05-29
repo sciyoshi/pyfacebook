@@ -12,29 +12,20 @@ def canvas(request):
     # Create a new Facebook object with our keys
     fb = Facebook(api_key, secret_key)
 
-    if request.method == 'POST':
-        # Facebook calls us with POST, so validate the signature
-        params = fb.validate_signature(request.POST)
+    result = fb.check_session(request)
 
-        # Error validating, redirect to our site
-        if not params or 'session_key' not in params or 'user' not in params:
-            if params and params['in_canvas'] == '1':
-                return HttpResponse('<fb:redirect url=' + fb.link('tos', api_key=api_key, v='1.0') + ' />')
+    if result:
+        return result
 
-            return HttpResponseRedirect(fb.link('tos', api_key=api_key, v='1.0'))
-    else:
-        # We're being viewed outside of Facebook
-        if 'auth_token' in request.GET:
-            return HttpResponseRedirect('http://apps.facebook.com/pyfacebook/')
+    if not fb.in_canvas:
+        return fb.redirect(fb.get_app_url('pyfacebook'))
 
-        # Request a login
-        return HttpResponseRedirect('http://www.facebook.com/login.php?' +
-            urllib.urlencode({'v': '1.0', 'api_key': api_key}))
+    values = fb.users_getInfo([fb.uid], ['first_name', 'is_app_user', 'has_added_app'])[0]
 
-    fb.session_key = params['session_key']
-    fb.uid = params['user']
+    name, is_app_user, has_added_app = values['first_name'], values['is_app_user'], values['has_added_app']
 
-    name = fb.users_getInfo([fb.uid], ['first_name'])[0]['first_name']
+    if has_added_app == '0':
+        return fb.redirect(fb.link('add', v='1.0', api_key=api_key))
 
     return render_to_response('facebook/canvas.fbml', {'name': name})
 
@@ -42,59 +33,25 @@ def post(request):
     # Create a new Facebook object with our keys
     fb = Facebook(api_key, secret_key)
 
-    if request.method == 'POST':
-        # Facebook calls us with POST, so validate the signature
-        params = fb.validate_signature(request.POST)
+    result = fb.check_session(request)
 
-        # Error validating, redirect to our site
-        if not params or 'session_key' not in params or 'user' not in params:
-            if params and params['in_canvas'] == '1':
-                return HttpResponse('<fb:redirect url=' + fb.link('tos', api_key=api_key, v='1.0') + ' />')
-
-            return HttpResponseRedirect(fb.link('tos', api_key=api_key, v='1.0'))
-    else:
-        # We're being viewed outside of Facebook
-        if 'auth_token' in request.GET:
-            return HttpResponseRedirect('http://apps.facebook.com/pyfacebook/')
-
-        # Request a login
-        return HttpResponseRedirect('http://www.facebook.com/login.php?' +
-            urllib.urlencode({'v': '1.0', 'api_key': api_key}))
-
-    fb.session_key = params['session_key']
-    fb.uid = params['user']
+    if result:
+        return result
 
     fb.profile_setFBML(request.POST['profile_text'], fb.uid)
 
-    return HttpResponseRedirect(fb.link('profile', id=fb.uid))
+    return fb.redirect(fb.link('profile', id=fb.uid))
 
 def post_add(request):
     # Create a new Facebook object with our keys
     fb = Facebook(api_key, secret_key)
 
-    if request.method == 'POST':
-        # Facebook calls us with POST, so validate the signature
-        params = fb.validate_signature(request.POST)
+    result = fb.check_session(request)
 
-        # Error validating, redirect to our site
-        if not params or 'session_key' not in params or 'user' not in params:
-            if params and params['in_canvas'] == '1':
-                return HttpResponse('<fb:redirect url=' + fb.link('tos', api_key=api_key, v='1.0') + ' />')
+    if result:
+        return result
 
-            return HttpResponseRedirect(fb.link('tos', api_key=api_key, v='1.0'))
+    fb.profile_setFBML('Congratulations on adding PyFaceBook. Please click on the PyFaceBook link on the left side to change this text.', fb.uid)
 
-        return HttpResponseRedirect(fb.link('profile', id=fb.uid))
-    else:
-        # We're being viewed outside of Facebook
-        if 'auth_token' not in request.GET:
-            return HttpResponseRedirect('http://www.facebook.com/login.php?' +
-                urllib.urlencode({'v': '1.0', 'api_key': api_key}))
-
-        fb = Facebook(api_key, secret_key, request.GET['auth_token'])
-
-        fb.auth_getSession()
-
-        fb.profile_setFBML('Congratulations on adding PyFaceBook. Please click on the PyFaceBook link on the left side to change this text.', fb.uid)
-
-        return HttpResponseRedirect(fb.link('profile', id=fb.uid))
+    return fb.redirect(fb.get_app_url('pyfacebook'))
 

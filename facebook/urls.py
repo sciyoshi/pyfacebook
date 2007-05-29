@@ -4,6 +4,9 @@ from django.conf.urls.defaults import *
 project = __name__.split('.')[0]
 
 urlpatterns = patterns('',
+    # Some functionality - users can post text to their homepage
+    (r'^canvas/post/', project + '.facebook.views.post'),
+
     # This is the canvas callback, i.e. what will be seen
     # when you visit http://apps.facebook.com/<appname>.
     (r'^canvas/', project + '.facebook.views.canvas'),
@@ -13,6 +16,4 @@ urlpatterns = patterns('',
     # has added the application.
     (r'^post_add/', project + '.facebook.views.post_add'),
 
-    # Some functionality - users can post text to their homepage
-    (r'^post/', project + '.facebook.views.post'),
 )
