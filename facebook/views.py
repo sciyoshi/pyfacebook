@@ -5,7 +5,6 @@ import urllib
 
 from facebook import Facebook
 
-# Fill in your API and secret keys here
 api_key = ''
 secret_key = ''
 
