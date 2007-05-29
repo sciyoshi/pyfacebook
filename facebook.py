@@ -398,6 +398,8 @@ class Facebook(object):
                 try:
                     self.auth_getSession()
                 except:
+                    self.auth_token = None
+
                     return self.redirect(self.get_login_url(next=next))
 
             else:
