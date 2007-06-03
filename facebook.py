@@ -624,8 +624,8 @@ except:
 if __name__ == '__main__':
     # sample desktop application
 
-    api_key = '1977d4ec72ee22eefb6c1ab26016e1e7'
-    secret_key = '33bdd420a11c4d470cd2483ee9b08f09'
+    api_key = ''
+    secret_key = ''
     
     facebook = Facebook(api_key, secret_key)
 
