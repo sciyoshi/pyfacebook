@@ -4,10 +4,10 @@
 
 def simple_web_app(request, api_key, secret_key):
     fb = Facebook(api_key, secret_key, request.GET['auth_token'])
-    fb.auth_getSession()
+    fb.auth.getSession()
 
-    friend_ids = fb.friends_get()
-    info = fb.users_getInfo(friend_ids, ['name', 'pic'])
+    friend_ids = fb.friends.get()
+    info = fb.users.getInfo(friend_ids, ['name', 'pic'])
 
     print '<html><body>'
     for friend in info:
@@ -38,12 +38,12 @@ def web_app(request):
 
         # getSession sets the session_key and uid
         # Store these in the cookie so we don't have to get them again
-        fb.auth_getSession()
+        fb.auth.getSession()
         request.session['session_key'] = fb.session_key
         request.session['uid'] = fb.uid
 
     try:
-        friend_ids = fb.friends_get()
+        friend_ids = fb.friends.get()
     except FacebookError, e:
         # Error 102 means the session has expired.
         # Delete the cookie and send the user to Facebook to login
@@ -55,7 +55,7 @@ def web_app(request):
             # Other Facebook errors are possible too. Don't ignore them.
             raise
         
-    info = fb.users_getInfo(friend_ids, ['name', 'pic'])
+    info = fb.users.getInfo(friend_ids, ['name', 'pic'])
     # info is a list of dictionaries
 
     # you would never do this in an actual Django application,
@@ -77,29 +77,29 @@ def desktop_app():
     fbs = open(FB_SETTINGS).readlines()
     facebook = Facebook(fbs[0].strip(), fbs[1].strip())
 
-	facebook.auth_createToken()
-	# Show login window
-	facebook.login()
+    facebook.auth.createToken()
+    # Show login window
+    facebook.login()
 
-	# Login to the window, then press enter
-	print 'After logging in, press enter...'
-	raw_input()
+    # Login to the window, then press enter
+    print 'After logging in, press enter...'
+    raw_input()
 
-	facebook.auth_getSession()
-	info = facebook.users_getInfo([facebook.uid], ['name', 'birthday', 'affiliations', 'gender'])[0]
+    facebook.auth.getSession()
+    info = facebook.users.getInfo([facebook.uid], ['name', 'birthday', 'affiliations', 'gender'])[0]
 
-	print 'Name: ', info['name']
-	print 'ID: ', facebook.uid
-	print 'Birthday: ', info['birthday']
-	print 'Gender: ', info['gender']
+    print 'Name: ', info['name']
+    print 'ID: ', facebook.uid
+    print 'Birthday: ', info['birthday']
+    print 'Gender: ', info['gender']
 
-	friends = facebook.friends_get()
-	friends = facebook.users_getInfo(friends[0:5], ['name', 'birthday', 'relationship_status'])
+    friends = facebook.friends.get()
+    friends = facebook.users.getInfo(friends[0:5], ['name', 'birthday', 'relationship_status'])
 
-	for friend in friends:
-		print friend['name'], 'has a birthday on', friend['birthday'], 'and is', friend['relationship_status']
+    for friend in friends:
+        print friend['name'], 'has a birthday on', friend['birthday'], 'and is', friend['relationship_status']
 
-	arefriends = facebook.friends_areFriends([friends[0]['id']], [friends[1]['id']])
+    arefriends = facebook.friends.areFriends([friends[0]['id']], [friends[1]['id']])
 
-	photos = facebook.photos_getAlbums(friends[1]['id'])
-	print photos
+    photos = facebook.photos.getAlbums(friends[1]['id'])
+    print photos
