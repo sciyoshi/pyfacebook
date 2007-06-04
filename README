@@ -1,0 +1,24 @@
+== PyFacebook ==
+
+PyFacebook is a Python client library for the Facebook API.
+
+Samuel Cormier-Iijima (sciyoshi@gmail.com)
+Niran Babalola (iamniran@gmail.com)
+
+http://code.google.com/p/pyfacebook
+
+
+== Usage ==
+
+To use this in your own projects, either do the standard:
+
+python setup.py install
+
+or copy the facebook.py file into your own source tree and
+use it from there.
+
+
+== Documentation ==
+
+Have a look at the examples/ directory. Also, most of the
+stuff should be self-explanatory.
