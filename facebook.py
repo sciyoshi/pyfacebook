@@ -512,7 +512,7 @@ class Facebook(object):
 
 
     # URL helpers
-    def get_url(self, page, args):
+    def get_url(self, page, **args):
         return 'http://api.facebook.com/%s.php?%s' % (page, urllib.urlencode(args))
 
     def get_login_url(self, next=None):
@@ -524,7 +524,7 @@ class Facebook(object):
         if self.auth_token is not None:
             args['auth_token'] = self.auth_token
         
-        return self.get_url('login', args)
+        return self.get_url('login', **args)
 
     def login(self):
         import webbrowser
@@ -548,7 +548,7 @@ class Facebook(object):
                 self.in_canvas = True
 
             if not self.params or 'session_key' not in self.params or 'user' not in self.params:
-                return self.redirect(self.link('tos', api_key=self.api_key, v='1.0', next=next))
+                return self.redirect(self.get_url('tos', api_key=self.api_key, v='1.0', next=next))
 
             self.session_key = self.params['session_key']
             self.uid = self.params['user']
@@ -561,7 +561,7 @@ class Facebook(object):
                 self.auth_token = request.GET['auth_token']
 
                 try:
-                    self.auth_getSession()
+                    self.auth.getSession()
                 except:
                     self.auth_token = None
 
@@ -582,7 +582,7 @@ class Facebook(object):
 
         args = dict([(key[len(prefix + '_'):], value) for key, value in args.items() if key.startswith(prefix)])
 
-        hash = self.arg_hash(args)
+        hash = self._hash_args(args)
 
         if hash == post[prefix]:
             return args
@@ -593,7 +593,7 @@ try:
     from django.core.exceptions import ImproperlyConfigured
     from django.conf import settings
 
-    def require_login(view, next=None):
+    def require_login(view, next=''):
         def newview(request, *args, **kwargs):
             try:
                 fb = request.facebook
@@ -643,7 +643,8 @@ if __name__ == '__main__':
     
     info = facebook.users.getInfo([facebook.uid], ['name', 'birthday', 'affiliations', 'sex'])[0]
     
-    print 'Your Name:     ', info['name']    print 'Your Birthday: ', info['birthday']
+    print 'Your Name:     ', info['name']
+    print 'Your Birthday: ', info['birthday']
     print 'Your Gender:   ', info['sex']
 
     friends = facebook.friends.get()
