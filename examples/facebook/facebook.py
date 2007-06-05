@@ -4,7 +4,11 @@ Python bindings for the Facebook API
 Copyright (c) 2006 Samuel Cormier-Iijima and Niran Babalola
 All rights reserved.
 
-updated 2007 for APIv1.0 David Edelstein
+Updated 2007 for API v1.0 David Edelstein
+
+Thanks to Jason Prado for his Python client to the Facebook API
+
+Thanks to Max Battcher for the proxy idea
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -29,133 +33,166 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+# we only want to export the Facebook object
+__all__ = ['Facebook']
+
+import md5
+import sys
+import time
+import base64
 import urllib
 import urllib2
 import httplib
 import mimetypes
-import webbrowser
-import md5
-import base64
-import time
-import cgi
 
-from time import time
-from xml.dom.minidom import parseString
-
-
-
-def _get_element_text(elem):
-    """Get a node's text by joining all of the text child nodes."""
-    return ''.join(node.data for node in elem.childNodes if node.nodeType == node.TEXT_NODE)
-
-
-class FacebookError(Exception):
-    """Exception class for errors received from Facebook."""
-    def __init__(self, info):
-        self.info = info
+# try to use simplejson first, otherwise fallback to XML
+try:
+    import simplejson
+    RESPONSE_FORMAT = 'JSON'
+except:
+    print 'NOTE: PyFacebook can use simplejson if it is installed, which'
+    print 'is much faster than XML and also uses less bandwith. Go to'
+    print 'http://undefined.org/python/#simplejson to download it, or do'
+    print 'apt-get install python-simplejson on a Debian-like system.'
+    print ''
+    print 'Falling back to XML...'
     
-    def __repr__(self):
-        return str(self)
-    
-    def __str__(self):
-        return 'Error %s: %s (%s)' % (
-            self.info['error_code'],
-            self.info['error_msg'],
-            ', '.join(
-               '%s = %s' % (arg['key'], arg['value']) for arg in self.info['request_args'].values()))
+    from xml.dom import minidom
+    RESPONSE_FORMAT = 'XML'
 
+# REST URLs
+FACEBOOK_URL = 'http://api.facebook.com/restserver.php'
+FACEBOOK_SECURE_URL = 'https://api.facebook.com/restserver.php'
 
-class Facebook(object):
-    _special_methods = ['auth.createToken', 'auth.getSession', 'photos.upload']
+# simple IDL for the Facebook API
+METHODS = {
+    # feed methods
+    'feed': {
+        'publishStoryToUser': [
+            ('title', str, []),
+            ('body', str, ['optional']),
+            ('image_1', str, ['optional']),
+            ('image_1_link', str, ['optional']),
+            ('image_2', str, ['optional']),
+            ('image_2_link', str, ['optional']),
+            ('image_3', str, ['optional']),
+            ('image_3_link', str, ['optional']),
+            ('image_4', str, ['optional']),
+            ('image_4_link', str, ['optional']),
+            ('priority', int, ['optional']),
+        ],
 
-    _methods = {
-        # AUTH methods
-        'auth.createToken': [],
-        'auth.getSession': [],
-        
-        # FQL methods
-        'fql.query':
-        [
+        'publishActionOfUser': [
+            ('title', str, []),
+            ('body', str, ['optional']),
+            ('image_1', str, ['optional']),
+            ('image_1_link', str, ['optional']),
+            ('image_2', str, ['optional']),
+            ('image_2_link', str, ['optional']),
+            ('image_3', str, ['optional']),
+            ('image_3_link', str, ['optional']),
+            ('image_4', str, ['optional']),
+            ('image_4_link', str, ['optional']),
+            ('priority', int, ['optional']),
+        ],
+    },
+
+    # fql methods
+    'fql': {
+        'query': [
             ('query', str, []),
         ],
-        
-        # EVENTS methods
-        'events.get':
-        [
-            ('uid', int, ['optional']),
-            ('eids', list, ['optional']),
-            ('start_time', int, ['optional']),
-            ('end_time', int, ['optional']),
-            ('rsvp_status', str, ['optional']),
-        ],
-        
-        'events.getMembers':
-        [
-            ('eid', int, []),
-        ],
-        
-        # FRIENDS methods
-        'friends.areFriends':
-        [
+    },
+
+    # friends methods
+    'friends': {
+        'areFriends': [
             ('uids1', list, []),
             ('uids2', list, []),
         ],
-        
-        'friends.get': [],
-        
-        'friends.getAppUsers': [],
-        
-        # GROUPS methods
-        'groups.get':
-        [
-            ('uid', int, ['optional']),
-            ('gids', list, ['optional']),
-        ],
-        
-        'groups.getMembers':
-        [
-            ('gid', int, [])
-        ],
-        
-        # NOTIFICATIONS methods
-        'notifications.get': [],
 
-        'notifications.send':
-        [
+        'get': [],
+
+        'getAppUsers': [],
+    },
+
+    'notifications': {
+        'send': [
             ('to_ids', list, []),
             ('markup', str, []),
             ('no_email', bool, []),
         ],
 
-        'notifications.sendRequest':
-        [
+        'sendRequest': [
             ('to_ids', list, []),
             ('type', str, []),
             ('content', str, []),
             ('image', str, []),
             ('invite', bool, []),
         ],
+    },
 
-        # PROFILE methods
-        'profile.setFBML':
-        [
+    # profile methods
+    'profile': {
+        'setFBML': [
             ('markup', str, []),
             ('uid', int, ['optional']),
         ],
 
-        'fbml.refreshImgSrc':
-        [
-            ('url', str, []),
+        'getFBML': [
+            ('uid', int, ['optional']),
+        ]
+    },
+
+    # users methods
+    'users': {
+        'getInfo': [
+            ('uids', list, []),
+            ('fields', list, [('default', ['name'])]),
         ],
 
-        'fbml.refreshRefUrl':
-        [
-            ('url', str, []),
+        'getLoggedInUser': [],
+
+        'isAppAdded': [],
+    },
+
+    # events methods
+    'events': {
+        'get': [
+            ('uid', int, ['optional']),
+            ('eids', list, ['optional']),
+            ('start_time', int, ['optional']),
+            ('end_time', int, ['optional']),
+            ('rsvp_status', str, ['optional']),
         ],
 
-        # PHOTOS methods
-        'photos.addTag':
-        [
+        'getMembers': [
+            ('eid', int, []),
+        ],
+    },
+
+    # update methods
+    'update': {
+        'decodeIDs': [
+            ('ids', list, []),
+        ],
+    },
+
+    # groups methods
+    'groups': {
+        'get': [
+            ('uid', int, ['optional']),
+            ('gids', list, ['optional']),
+        ],
+
+        'getMembers': [
+            ('gid', int, [])
+        ],
+    },
+
+    # photos methods
+    'photos': {
+        'addTag': [
             ('pid', int, []),
             ('tag_uid', int, [('default', 0)]),
             ('tag_text', str, [('default', '')]),
@@ -163,128 +200,138 @@ class Facebook(object):
             ('y', float, [('default', 50)]),
             ('tags', str, ['optional']),
         ],
-        
-        'photos.createAlbum':
-        [
+
+        'createAlbum': [
             ('name', str, []),
             ('location', str, ['optional']),
             ('description', str, ['optional']),
         ],
-        
-        'photos.get':
-        [
+
+        'get': [
             ('subj_id', int, ['optional']),
             ('aid', int, ['optional']),
             ('pids', list, ['optional']),
         ],
-        
-        'photos.getAlbums':
-        [
+
+        'getAlbums': [
             ('uid', int, ['optional']),
             ('pids', list, ['optional']),
         ],
-        
-        'photos.getTags':
-        [
+
+        'getTags': [
             ('pids', list, []),
         ],
-        
-        'photos.upload':
-        [
-            ('aid', int, ['optional']),
-            ('caption', str, ['optional']),
-            ('', None, []),
-        ],
-        
-        # UPDATE methods
-        'update.decodeIDs':
-        [
-            ('ids', list, []),
-        ],
-        
-        # USERS methods
-        'users.getInfo':
-        [
-            ('uids', list, []),
-            ('fields', list, [('default', ['name'])]),
-        ],
-        
-        'users.getLoggedInUser': [],
+    },
 
-        'users.isAppAdded': [],
-    }
-    
-    def __init__(self, api_key, secret_key, auth_token=None):
-        self.api_key = api_key
-        self.secret_key = secret_key
-        self.secret = None
-        self.in_canvas = False
-        self.auth_token = auth_token
+    # fbml methods
+    'fbml': {
+        'refreshImgSrc': [
+            ('url', str, []),
+        ],
 
-    for method_name in sorted(_methods.keys()):
-        if method_name in _special_methods:
-            continue
+        'refreshRefUrl': [
+            ('url', str, []),
+        ],
+    },
+}
+
+
+def _get_element_text(elem):
+    """Get a node's text by joining all of the text child nodes."""
+    return ''.join(node.data for node in elem.childNodes if node.nodeType == node.TEXT_NODE)
+
+
+class Proxy(object):
+    """Represents a "namespace" of Facebook API calls."""
+
+    def __init__(self, client, name):
+        self._client = client
+        self._name = name
+
+    def __call__(self, method, args=None):
+        if not self._client.session_key:
+            raise RuntimeError('Session key not set. Make sure auth.getSession has been called.')
+
+        args['session_key'] = self._client.session_key
+        args['call_id'] = str(int(time.time()) * 1000)
+
+        return self._client('%s.%s' % (self._name, method), args)
+
+# generate the Facebook proxies
+def __generate_proxies():
+    for namespace in METHODS:
+        methods = {}
         
-        signature = 'def ' + method_name.replace('.', '_') + '(self'
-        
-        indent1 = '\n'
-        indent2 = indent1 + '    '
-        indent3 = indent2 + '    '
-        
-        body = ''
-        
-        for param_name, param_type, param_options in _methods[method_name]:
-            signature += ', ' + param_name
+        for method in METHODS[namespace]:
+            params = ['self']
+            body = ['args = {}']
             
-            for option in param_options:
-                # Check for defaults:
-                if isinstance(option, tuple):
-                    if option[0] == 'default':
+            for param_name, param_type, param_options in METHODS[namespace][method]:
+                param = param_name
+            
+                for option in param_options:
+                    if isinstance(option, tuple) and option[0] == 'default':
                         if param_type == list:
-                            signature += '=None'
-                            body += indent2 + 'if ' + param_name + ' == None:'
-                            body += indent3 + param_name + ' = ' + repr(option[1])
+                            param = '%s=None' % param_name
+                            body.append('if %s is None: %s = %s' % (param_name, param_name, repr(option[1])))
                         else:
-                            signature += '=' + repr(option[1])
-                            
-            if 'optional' in param_options:
-                signature += '=None'
-                body += indent2 + 'if ' + param_name + ' is not None:'
-                body += indent3 + 'params["' + param_name + '"] = ' + param_name 
-            else:
-                body += indent2 + 'params["' + param_name + '"] = ' + param_name
-
-        signature += '):'
-
-        body += indent2 + 'return self._call_method("facebook.' + method_name + '"'
+                            param = '%s=%s' % (param_name, repr(option[1]))
+                
+                if 'optional' in param_options:
+                    param = '%s=None' % param_name
+                    body.append('if %s is not None: args[\'%s\'] = %s' % (param_name, param_name, param_name))
+                else:
+                    body.append('args[\'%s\'] = %s' % (param_name, param_name))
+                
+                params.append(param)
+            
+            body.insert(0, 'def %s(%s):' % (method, ', '.join(params)))
+            
+            body.append('return self(\'%s\', args)' % method)
+            
+            exec('\n    '.join(body))
+            
+            methods[method] = eval(method)
+            
+        proxy = type('%sProxy' % namespace.title(), (Proxy, ), methods)
         
-        if _methods[method_name] != []:
-            body = indent2 + 'params = {}' + body
-            body += ', params'
+        globals()[proxy.__name__] = proxy
 
-        body += ')'
+__generate_proxies()
 
-        definition = signature + body
+class FacebookError(Exception):
+    """Exception class for errors received from Facebook."""
 
-        exec definition
+    def __init__(self, code, msg, args=None):
+        self.code = code
+        self.msg = msg
+        self.args = args
 
-    # AUTH methods
-    def auth_createToken(self):
-        result = self._call_method('facebook.auth.createToken')
-        self.auth_token = result
-        return self.auth_token
+    def __str__(self):
+        return 'Error %s: %s' % (self.code, self.msg)
 
-    def auth_getSession(self):
-        result = self._call_method('facebook.auth.getSession', {
-            'auth_token': self.auth_token
-                })
-        self.session_key = result['session_key']
-        self.uid = result['uid']
-        # don't complain if there isn't a 'secret'. web apps don't have one
-        self.secret = result.get('secret')
+class AuthProxy(Proxy):
+    """Special proxy for facebook.auth."""
+
+    def getSession(self):
+        args = {}
+        args['auth_token'] = self._client.auth_token
+        result = self._client('%s.getSession' % self._name, args)
+        self._client.session_key = result['session_key']
+        self._client.uid = result['uid']
+        self._client.secret = result.get('secret')
         return result
 
-    def photos_upload(self, image, aid=None, caption=None):
+    def createToken(self):
+        result = self._client('%s.createToken' % self._name)
+        self._client.auth_token = result
+        return self._client.auth_token
+
+# inherit from ourselves!
+class PhotosProxy(PhotosProxy):
+    """Special proxy for facebook.photos."""
+
+    def upload(self, image, aid=None, caption=None):
         args = {}
         
         if aid is not None:
@@ -293,30 +340,45 @@ class Facebook(object):
         if caption is not None:
             args['caption'] = caption
 
-        args['api_key'] = self.api_key
+        args['api_key'] = self._client.api_key
         args['method'] = 'facebook.photos.upload'
         args['v'] = '1.0'
 
-        args['session_key'] = self.session_key
-        args['call_id'] = str(int(time() * 1000))
+        args['session_key'] = self._client.session_key
+        args['call_id'] = str(int(time.time() * 1000))
 
-        args['sig'] = self.arg_hash(args)
+        args['format'] = RESPONSE_FORMAT
 
-        content_type, body = self._encode_multipart_formdata(list(args.iteritems()), [(image, file(image).read())])
+        args['sig'] = self._client._hash_args(args)
+
+        content_type, body = self.__encode_multipart_formdata(list(args.iteritems()), [(image, file(image).read())])
         h = httplib.HTTP('api.facebook.com')
         h.putrequest('POST', '/restserver.php')
         h.putheader('content-type', content_type)
         h.putheader('content-length', str(len(body)))
         h.endheaders()
         h.send(body)
-        print h.getreply()
-        dom = parseString(h.file.read())
-        result = self._parse_response_item(dom)
-        dom.unlink()
-        self._check_error(result)
-        return result['photos_upload_response']
-    	
-    def _encode_multipart_formdata(self, fields, files):
+
+        response = h.file.read()
+
+        if RESPONSE_FORMAT == 'JSON':
+            result = simplejson.loads(response)
+            
+            self._client._check_error(result)
+        else:
+            dom = minidom.parseString(response)
+            result = self._client._parse_response_item(dom)
+            dom.unlink()
+
+            if 'error_response' in result:
+                self._client._check_error(result['error_response'])
+
+            result = result['photos_upload_response']
+
+        return result
+
+
+    def __encode_multipart_formdata(self, fields, files):
         boundary = '----------ThIs_Is_tHe_bouNdaRY_$'
         crlf = '\r\n'
         l = []
@@ -330,7 +392,7 @@ class Facebook(object):
             l.append('--' + boundary)
             l.append('Content-Disposition: form-data; filename="%s"' % (filename, ))
             l.append('Content-Transfer-Encoding: base64')
-            l.append('Content-Type: %s' % self._get_content_type(filename))
+            l.append('Content-Type: %s' % self.__get_content_type(filename))
             l.append('')
             l.append(base64.b64encode(value))
         l.append('--' + boundary + '--')
@@ -339,31 +401,137 @@ class Facebook(object):
         content_type = 'multipart/form-data; boundary=%s' % boundary
         return content_type, body
 
-    def _get_content_type(self, filename):
+
+    def __get_content_type(self, filename):
         return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
 	    
-    # URL methods    
-    def get_login_url(self, next=None):
-        url = 'http://api.facebook.com/login.php?api_key=' + self.api_key
-        url += '&v=1.0'
-        if next is not None:
-            url += '&next=' + next
-        if self.auth_token is not None:
-            url += '&auth_token=' + self.auth_token
-        return url
 
-    def get_app_url(self, appname):
-        return 'http://apps.facebook.com/%s/' % appname
-    
+
+class Facebook(object):
+    """Provides access to the Facebook API."""
+
+    def __init__(self, api_key, secret_key):
+        self.api_key = api_key
+        self.secret_key = secret_key
+        self.session_key = None
+        self.secret = None
+        self.in_canvas = False
+        
+        for namespace in METHODS:
+            self.__dict__[namespace] = eval('%sProxy(self, \'%s\')' % (namespace.title(), 'facebook.%s' % namespace))
+        
+        self.auth = AuthProxy(self, 'facebook.auth')
+
+
+    def _hash_args(self, args):
+        hasher = md5.new(''.join(['%s=%s' % (x, args[x]) for x in sorted(args.keys())]))
+        if self.secret:
+            hasher.update(self.secret)
+        else:
+            hasher.update(self.secret_key)
+        return hasher.hexdigest()
+
+
+    def _parse_response_item(self, node):
+        if node.nodeType == node.DOCUMENT_NODE and \
+            node.childNodes[0].hasAttributes() and \
+            node.childNodes[0].hasAttribute('list') and \
+            node.childNodes[0].getAttribute('list') == "true":
+            return {node.childNodes[0].nodeName: self._parse_response_list(node.childNodes[0])}
+        elif node.nodeType == node.ELEMENT_NODE and \
+            node.hasAttributes() and \
+            node.hasAttribute('list') and \
+            node.getAttribute('list')=="True":
+            return self._parse_response_list(node)
+        elif len(filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes)) > 0:
+            return self._parse_response_dict(node)
+        else:
+            return _get_element_text(node)
+
+
+    def _parse_response_dict(self, node):
+        result = {}
+        for item in filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes):
+            result[item.nodeName] = self._parse_response_item(item)
+        if node.nodeType == node.ELEMENT_NODE and node.hasAttributes():
+            if node.hasAttribute('id'):
+                result['id'] = node.getAttribute('id')
+        return result
+
+
+    def _parse_response_list(self, node):
+        result = []
+        for item in filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes):
+            result.append(self._parse_response_item(item))
+        return result
+
+
+    def _check_error(self, response):
+        if type(response) is dict and response.has_key('error_code'):
+            print (response['error_code'], response['error_msg'], response['request_args'])
+            raise FacebookError(response['error_code'], response['error_msg'], response['request_args'])
+
+
+    def __call__(self, method, args=None, secure=False):
+        if args is None:
+            args = {}
+        
+        for arg in args.items():
+            if type(arg[1]) == list:
+                args[arg[0]] = ','.join(arg[1])
+        
+        args['method'] = method
+        args['api_key'] = self.api_key
+        args['v'] = '1.0'
+        args['format'] = RESPONSE_FORMAT
+        args['sig'] = self._hash_args(args)
+        
+        post_data = urllib.urlencode(args)
+        
+        if secure:
+            response = urllib2.urlopen(FACEBOOK_SECURE_URL, urllib.urlencode(args)).read()
+        else:
+            response = urllib2.urlopen(FACEBOOK_URL, urllib.urlencode(args)).read()
+        
+        
+        if RESPONSE_FORMAT == 'JSON':
+            result = simplejson.loads(response)
+            
+            self._check_error(result)
+        else:
+            dom = minidom.parseString(response)
+            result = self._parse_response_item(dom)
+            dom.unlink()
+
+            if 'error_response' in result:
+                self._check_error(result['error_response'])
+
+            result = result[method[9:].replace('.', '_') + '_response']
+
+        return result
+
+
+    # URL helpers
+    def get_url(self, page, **args):
+        return 'http://www.facebook.com/%s.php?%s' % (page, urllib.urlencode(args))
+
+    def get_login_url(self, next=None):
+        args = {'api_key': self.api_key, 'v': '1.0'}
+        
+        if next is not None:
+            args['next'] = next
+        
+        if self.auth_token is not None:
+            args['auth_token'] = self.auth_token
+        
+        return 'http://api.facebook.com/login.php/%s' % urllib.urlencode(args)
+
     def login(self):
+        import webbrowser
         webbrowser.open(self.get_login_url())
 
 
-    # LINK method
-    def link(self, link_type='profile', **kwargs):
-        return 'http://www.facebook.com/%s.php?%s' % (link_type, urllib.urlencode(kwargs))
-
-
+    # Django helpers
     def redirect(self, url):
         from django.http import HttpResponse, HttpResponseRedirect
 
@@ -372,10 +540,7 @@ class Facebook(object):
         else:
             return HttpResponseRedirect(url)
 
-
     def check_session(self, request, next=''):
-        from django.http import HttpResponse, HttpResponseRedirect
-
         if request.method == 'POST':
             self.params = self.validate_signature(request.POST)
 
@@ -383,7 +548,7 @@ class Facebook(object):
                 self.in_canvas = True
 
             if not self.params or 'session_key' not in self.params or 'user' not in self.params:
-                return self.redirect(self.link('tos', api_key=self.api_key, v='1.0', next=next))
+                return self.redirect(self.get_url('tos', api_key=self.api_key, v='1.0', next=next))
 
             self.session_key = self.params['session_key']
             self.uid = self.params['user']
@@ -396,108 +561,75 @@ class Facebook(object):
                 self.auth_token = request.GET['auth_token']
 
                 try:
-                    self.auth_getSession()
+                    self.auth.getSession()
                 except:
+                    self.auth_token = None
+
                     return self.redirect(self.get_login_url(next=next))
 
             else:
                 return self.redirect(self.get_login_url(next=next))
 
     def validate_signature(self, post, prefix='fb_sig', timeout=None):
-        '''
-        Validate POST parameters passed to an internal Facebook app from Facebook.
-        '''
+        """
+        Validate parameters passed to an internal Facebook app from Facebook.
+        """
         args = post.copy()
         del args[prefix]
 
-        if timeout and prefix + '_time' in post and time.time() - float(post[prefix + '_time']) > timeout:
+        if timeout and '%s_time' % prefix in post and time.time() - float(post['%s_time' % prefix]) > timeout:
             return None
 
         args = dict([(key[len(prefix + '_'):], value) for key, value in args.items() if key.startswith(prefix)])
 
-        hash = self.arg_hash(args)
+        hash = self._hash_args(args)
 
         if hash == post[prefix]:
             return args
         else:
             return None
 
-    def _parse_response_item(self, node):
-        if node.nodeType==node.DOCUMENT_NODE and node.childNodes[0].hasAttributes() and node.childNodes[0].hasAttribute('list') and node.childNodes[0].getAttribute('list')=="true":
-            return {node.childNodes[0].nodeName: self._parse_response_list(node.childNodes[0])}
-        elif node.nodeType==node.ELEMENT_NODE and node.hasAttributes() and node.hasAttribute('list') and node.getAttribute('list')=="True":
-            return self._parse_response_list(node)
-        elif len(filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes)) > 0:
-            return self._parse_response_dict(node)
-        else:
-            return _get_element_text(node)
+try:
+    from django.core.exceptions import ImproperlyConfigured
+    from django.conf import settings
 
-    def _parse_response_dict(self, node):
-        result = {}
-        for item in filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes):
-            result[item.nodeName] = self._parse_response_item(item)
-        if node.nodeType == node.ELEMENT_NODE and node.hasAttributes():
-            if node.hasAttribute('id'):
-                result['id'] = node.getAttribute('id')
-        return result
+    def require_login(view, next=''):
+        def newview(request, *args, **kwargs):
+            try:
+                fb = request.facebook
+            except:
+                raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
-    def _parse_response_list(self, node):
-        result = []
-        for item in filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes):
-            result.append(self._parse_response_item(item))
-        return result
-        
+            result = fb.check_session(request, next)
 
-    def _check_error(self, result):
-        if type(result) is dict and result.has_key('error_response'):
-            raise FacebookError, result['error_response']
-        return True
+            if result:
+                return result
 
-    def arg_hash(self, args):
-        hash = md5.new()
-        hash.update(''.join([key + '=' + args[key] for key in sorted(args.keys())]))
-        if self.secret:
-            hash.update(self.secret)
-        else:
-            hash.update(self.secret_key)
-        return hash.hexdigest()
+            return view(request, *args, **kwargs)
 
-    def _call_method(self, method, args=None):
-        if args == None:
-            args = {}
+        return newview
+
+    class FacebookMiddleware(object):
+        def __init__(self, api_key=None, secret_key=None):
+            self.api_key = api_key or settings.FACEBOOK_API_KEY
+            self.secret_key = secret_key or settings.FACEBOOK_SECRET_KEY
+
+        def process_request(self, request):
+            request.facebook = Facebook(self.api_key, self.secret_key)
+
+except:
+    pass
+
+
+if __name__ == '__main__':
+    # sample desktop application
+
+    api_key = ''
+    secret_key = ''
     
-        for key in args.keys():
-            if isinstance(args[key], list):
-                args[key] = ','.join(args[key])
+    facebook = Facebook(api_key, secret_key)
 
-        args['api_key'] = self.api_key
-        args['method'] = method
-        args['v'] = '1.0'
-
-        if method not in ['facebook.auth.createToken', 'facebook.auth.getSession']:
-            args['session_key'] = self.session_key
-            args['call_id'] = str(int(time() * 1000))
-
-        args['sig'] = self.arg_hash(args)
-
-        if method == 'facebook.auth.getSession':
-            xml = urllib2.urlopen('https://api.facebook.com/restserver.php', urllib.urlencode(args)).read()
-        else:
-            xml = urllib2.urlopen('http://api.facebook.com/restserver.php', urllib.urlencode(args)).read()
-        
-        dom = parseString(xml)
-        result = self._parse_response_item(dom)
-        dom.unlink()
-        self._check_error(result)
-        return result[method[9:].replace('.', '_') + '_response']
-
-
-if __name__=="__main__":
-    api_key = ""
-    secret = ""
-    facebook = Facebook(api_key, secret)
-    
-    facebook.auth_createToken()
+    facebook.auth.createToken()
     # Show login window
     facebook.login()
 
@@ -505,32 +637,23 @@ if __name__=="__main__":
     print 'After logging in, press enter...'
     raw_input()
 
-    facebook.auth_getSession()
-    print 'Session Key: ', facebook.session_key
-    print 'uid: ', facebook.uid
+    facebook.auth.getSession()
+    print 'Session Key:   ', facebook.session_key
+    print 'Your UID:      ', facebook.uid
     
-    info = facebook.users_getInfo([facebook.uid], ['name', 'birthday', 'affiliations', 'sex'])[0]
+    info = facebook.users.getInfo([facebook.uid], ['name', 'birthday', 'affiliations', 'sex'])[0]
+    
+    print 'Your Name:     ', info['name']
+    print 'Your Birthday: ', info['birthday']
+    print 'Your Gender:   ', info['sex']
 
-    print 'Name: ', info['name']
-    print 'ID: ', facebook.uid
-    print 'Birthday: ', info['birthday']
-    print 'Gender: ', info['sex']
-
-    for thing in facebook.fql_query(
-        'SELECT concat(first_name, " ", last_name, ": ", birthday) FROM user \
-         WHERE uid IN (SELECT uid2 FROM friend WHERE uid1=' + facebook.uid + ') AND strlen(last_name) = 7'):
-         print thing['anon']
-
-    print facebook.photos_upload('Vista.jpg')
-
-    friends = facebook.friends_get()
-    friends = facebook.users_getInfo(friends[0:5], ['name', 'birthday', 'relationship_status'])
+    friends = facebook.friends.get()
+    friends = facebook.users.getInfo(friends[0:5], ['name', 'birthday', 'relationship_status'])
 
     for friend in friends:
         print friend['name'], 'has a birthday on', friend['birthday'], 'and is', friend['relationship_status']
 
-    arefriends = facebook.friends_areFriends([friends[0]['uid']], [friends[1]['uid']])
-    print arefriends
-
-    photos = facebook.photos_getAlbums(facebook.uid)
-    print photos
+    arefriends = facebook.friends.areFriends([friends[0]['uid']], [friends[1]['uid']])
+ 
+    photos = facebook.photos.getAlbums(facebook.uid)
+ 

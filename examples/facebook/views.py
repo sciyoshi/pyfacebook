@@ -3,55 +3,34 @@ from django.shortcuts import render_to_response
 
 import urllib
 
-from facebook import Facebook
+import facebook
 
-api_key = ''
-secret_key = ''
+api_key = '4caee2449ac74758ff8e49064c5770bb'
+secret_key = '1698edd7ec096affe0928d071f3d1a22'
 
+@facebook.require_login
 def canvas(request):
-    # Create a new Facebook object with our keys
-    fb = Facebook(api_key, secret_key)
+    if not request.facebook.in_canvas:
+        return request.facebook.redirect('http://apps.facebook.com/pyfacebook/')
 
-    result = fb.check_session(request)
-
-    if result:
-        return result
-
-    if not fb.in_canvas:
-        return fb.redirect(fb.get_app_url('pyfacebook'))
-
-    values = fb.users_getInfo([fb.uid], ['first_name', 'is_app_user', 'has_added_app'])[0]
+    values = request.facebook.users.getInfo([request.facebook.uid], ['first_name', 'is_app_user', 'has_added_app'])[0]
 
     name, is_app_user, has_added_app = values['first_name'], values['is_app_user'], values['has_added_app']
 
     if has_added_app == '0':
-        return fb.redirect(fb.link('add', v='1.0', api_key=api_key))
+        return request.facebook.redirect(request.facebook.get_url('add', {'api_key': api_key}))
 
     return render_to_response('facebook/canvas.fbml', {'name': name})
 
+@facebook.require_login
 def post(request):
-    # Create a new Facebook object with our keys
-    fb = Facebook(api_key, secret_key)
+    request.facebook.profile.setFBML(request.POST['profile_text'], request.facebook.uid)
 
-    result = fb.check_session(request)
+    return request.facebook.redirect(request.facebook.get_url('profile', id=request.facebook.uid))
 
-    if result:
-        return result
-
-    fb.profile_setFBML(request.POST['profile_text'], fb.uid)
-
-    return fb.redirect(fb.link('profile', id=fb.uid))
-
+@facebook.require_login
 def post_add(request):
-    # Create a new Facebook object with our keys
-    fb = Facebook(api_key, secret_key)
+    request.facebook.profile.setFBML('Congratulations on adding PyFaceBook. Please click on the PyFaceBook link on the left side to change this text.', request.facebook.uid)
 
-    result = fb.check_session(request)
-
-    if result:
-        return result
-
-    fb.profile_setFBML('Congratulations on adding PyFaceBook. Please click on the PyFaceBook link on the left side to change this text.', fb.uid)
-
-    return fb.redirect(fb.get_app_url('pyfacebook'))
+    return request.facebook.redirect('http://apps.facebook.com/pyfacebook/')
 
