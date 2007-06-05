@@ -513,7 +513,7 @@ class Facebook(object):
 
     # URL helpers
     def get_url(self, page, **args):
-        return 'http://api.facebook.com/%s.php?%s' % (page, urllib.urlencode(args))
+        return 'http://www.facebook.com/%s.php?%s' % (page, urllib.urlencode(args))
 
     def get_login_url(self, next=None):
         args = {'api_key': self.api_key, 'v': '1.0'}
@@ -524,7 +524,7 @@ class Facebook(object):
         if self.auth_token is not None:
             args['auth_token'] = self.auth_token
         
-        return self.get_url('login', **args)
+        return 'http://api.facebook.com/login.php/%s' % urllib.urlencode(args)
 
     def login(self):
         import webbrowser
