@@ -20,5 +20,9 @@ use it from there.
 
 == Documentation ==
 
-Have a look at the examples/ directory. Also, most of the
-stuff should be self-explanatory.
+Have a look at the examples/ directory. Most of the
+stuff should be self-explanatory. There is also an example
+Django app in examples/facebook, which should have enough
+to get you started.
+
+See the developer wiki for more information.

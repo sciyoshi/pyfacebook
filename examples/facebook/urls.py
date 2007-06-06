@@ -7,6 +7,9 @@ urlpatterns = patterns('',
     # Some functionality - users can post text to their homepage
     (r'^canvas/post/', project + '.facebook.views.post'),
 
+    # For the mock AJAX functionality
+    (r'^canvas/ajax/', project + '.facebook.views.ajax'),
+
     # This is the canvas callback, i.e. what will be seen
     # when you visit http://apps.facebook.com/<appname>.
     (r'^canvas/', project + '.facebook.views.canvas'),

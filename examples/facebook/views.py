@@ -5,8 +5,8 @@ import urllib
 
 import facebook
 
-api_key = '4caee2449ac74758ff8e49064c5770bb'
-secret_key = '1698edd7ec096affe0928d071f3d1a22'
+api_key = ''
+secret_key = ''
 
 @facebook.require_login
 def canvas(request):
@@ -18,7 +18,7 @@ def canvas(request):
     name, is_app_user, has_added_app = values['first_name'], values['is_app_user'], values['has_added_app']
 
     if has_added_app == '0':
-        return request.facebook.redirect(request.facebook.get_url('add', {'api_key': api_key}))
+        return request.facebook.redirect(request.facebook.get_url('add', api_key=api_key))
 
     return render_to_response('facebook/canvas.fbml', {'name': name})
 
@@ -34,3 +34,6 @@ def post_add(request):
 
     return request.facebook.redirect('http://apps.facebook.com/pyfacebook/')
 
+@facebook.require_login
+def ajax(request):
+    return HttpResponse('hello world')

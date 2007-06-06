@@ -414,6 +414,7 @@ class Facebook(object):
         self.api_key = api_key
         self.secret_key = secret_key
         self.session_key = None
+        self.auth_token = None
         self.secret = None
         self.in_canvas = False
         
@@ -524,7 +525,7 @@ class Facebook(object):
         if self.auth_token is not None:
             args['auth_token'] = self.auth_token
         
-        return 'http://api.facebook.com/login.php/%s' % urllib.urlencode(args)
+        return 'http://www.facebook.com/login.php?%s' % urllib.urlencode(args)
 
     def login(self):
         import webbrowser
