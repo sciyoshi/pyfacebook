@@ -1,45 +1,72 @@
-"""
-Python bindings for the Facebook API
+#! /usr/bin/python
+#
+# pyfacebook - Python bindings for the Facebook API
+#
+# Copyright (c) 2007 Samuel Cormier-Iijima and Niran Babalola
+# All rights reserved.
+#
+# Updated 2007 for API v1.0 David Edelstein
+#
+# Thanks to Jason Prado for his Python client to the Facebook API
+#
+# Thanks to Max Battcher for the proxy idea
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. The name of the author may not be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Copyright (c) 2006 Samuel Cormier-Iijima and Niran Babalola
+"""
+Python bindings for the Facebook API (pyfacebook - http://code.google.com/p/pyfacebook)
+
+PyFacebook is a client library that wraps the Facebook API.
+
+For more information, see
+
+Home Page: http://code.google.com/p/pyfacebook
+Developer Wiki: http://wiki.developers.facebook.com/index.php/Python
+
+PyFacebook can use simplejson if it is installed, which
+is much faster than XML and also uses less bandwith. Go to
+http://undefined.org/python/#simplejson to download it, or do
+apt-get install python-simplejson on a Debian-like system.
+
+Also, if Django is installed, some extra features are included.
+FacebookMiddleware is Django middleware that attaches a "facebook"
+object to every incoming request. There are also decorators for
+Django views that make authentication easier.
+
+Copyright (c) 2007 Samuel Cormier-Iijima and Niran Babalola
 All rights reserved.
 
-Updated 2007 for API v1.0 David Edelstein
-
-Thanks to Jason Prado for his Python client to the Facebook API
-
-Thanks to Max Battcher for the proxy idea
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-1. Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the distribution.
-3. The name of the author may not be used to endorse or promote products
-   derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Licensed under the LGPL.
 """
 
-# we only want to export the Facebook object
-__all__ = ['Facebook']
+VERSION = '1.0'
+
+# we only want to export the Facebook object and version info
+__all__ = ['Facebook', 'require_login']
 
 import md5
 import sys
 import time
-import base64
 import urllib
 import urllib2
 import httplib
@@ -257,6 +284,7 @@ class Proxy(object):
 
         return self._client('%s.%s' % (self._name, method), args)
 
+
 # generate the Facebook proxies
 def __generate_proxies():
     for namespace in METHODS:
@@ -285,6 +313,9 @@ def __generate_proxies():
                 
                 params.append(param)
             
+            # simple docstring to refer them to Facebook API docs
+            body.insert(0, '"""Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=%s.%s"""' % (namespace, method))
+
             body.insert(0, 'def %s(%s):' % (method, ', '.join(params)))
             
             body.append('return self(\'%s\', args)' % method)
@@ -299,6 +330,7 @@ def __generate_proxies():
 
 __generate_proxies()
 
+
 class FacebookError(Exception):
     """Exception class for errors received from Facebook."""
 
@@ -310,10 +342,12 @@ class FacebookError(Exception):
     def __str__(self):
         return 'Error %s: %s' % (self.code, self.msg)
 
+
 class AuthProxy(Proxy):
     """Special proxy for facebook.auth."""
 
     def getSession(self):
+        """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=auth.getSession"""
         args = {}
         args['auth_token'] = self._client.auth_token
         result = self._client('%s.getSession' % self._name, args)
@@ -323,15 +357,18 @@ class AuthProxy(Proxy):
         return result
 
     def createToken(self):
+        """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=auth.createToken"""
         result = self._client('%s.createToken' % self._name)
         self._client.auth_token = result
         return self._client.auth_token
+
 
 # inherit from ourselves!
 class PhotosProxy(PhotosProxy):
     """Special proxy for facebook.photos."""
 
     def upload(self, image, aid=None, caption=None):
+        """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=photos.upload"""
         args = {}
         
         if aid is not None:
@@ -354,10 +391,17 @@ class PhotosProxy(PhotosProxy):
         content_type, body = self.__encode_multipart_formdata(list(args.iteritems()), [(image, file(image).read())])
         h = httplib.HTTP('api.facebook.com')
         h.putrequest('POST', '/restserver.php')
-        h.putheader('content-type', content_type)
-        h.putheader('content-length', str(len(body)))
+        h.putheader('Content-Type', content_type)
+        h.putheader('Content-Length', str(len(body)))
+        h.putheader('MIME-Version', '1.0')
+        h.putheader('User-Agent', 'PyFacebook Client Library')
         h.endheaders()
         h.send(body)
+
+        reply = h.getreply()
+
+        if reply[0] != 200:
+            raise Exception('Facebook gave a %s (%s)' % (reply[0], reply[1]))
 
         response = h.file.read()
 
@@ -379,22 +423,24 @@ class PhotosProxy(PhotosProxy):
 
 
     def __encode_multipart_formdata(self, fields, files):
-        boundary = '----------ThIs_Is_tHe_bouNdaRY_$'
+        """
+        Encodes a multipart/form-data message to upload an image.
+        """
+        boundary = '-------tHISiStheMulTIFoRMbOUNDaRY'
         crlf = '\r\n'
         l = []
         
         for (key, value) in fields:
             l.append('--' + boundary)
-            l.append('Content-Disposition: form-data; name="%s"' % key)
+            l.append('Content-Disposition: form-data; name="%s"' % str(key))
             l.append('')
-            l.append(value)
+            l.append(str(value))
         for (filename, value) in files:
             l.append('--' + boundary)
-            l.append('Content-Disposition: form-data; filename="%s"' % (filename, ))
-            l.append('Content-Transfer-Encoding: base64')
+            l.append('Content-Disposition: form-data; filename="%s"' % (str(filename), ))
             l.append('Content-Type: %s' % self.__get_content_type(filename))
             l.append('')
-            l.append(base64.b64encode(value))
+            l.append(value)
         l.append('--' + boundary + '--')
         l.append('')
         body = crlf.join(l)
@@ -403,18 +449,65 @@ class PhotosProxy(PhotosProxy):
 
 
     def __get_content_type(self, filename):
-        return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-	    
+        """
+        Returns a guess at the MIME type of the file from the filename.
+        """
+        return str(mimetypes.guess_type(filename)[0]) or 'application/octet-stream'
 
 
 class Facebook(object):
-    """Provides access to the Facebook API."""
+    """
+    Provides access to the Facebook API.
+    
+    Instance Variables:
+    
+    api_key
+        Your API key, as set in the constructor.
+    
+    auth_token
+        The auth token that Facebook gives you, either with facebook.auth.createToken,
+        or through a GET parameter.
+    
+    in_canvas
+        True if the current request is for a canvas page.
+    
+    secret
+        Secret that is used after getSession for desktop apps.
+    
+    secret_key
+        Your application's secret key, as set in the constructor.
+    
+    session_key
+        The current session key.
+    
+    uid
+        After a session is created, you can get the user's UID with this variable.
+    
+    ----------------------------------------------------------------------
+    
+    """
 
-    def __init__(self, api_key, secret_key):
+    def __init__(self, api_key, secret_key, auth_token=None):
+        """
+        Initializes a new Facebook object which provides wrappers for the Facebook API.
+        
+        If this is a desktop application, the next couple of steps you might want to take are:
+        
+        facebook.auth.createToken() # create an auth token
+        facebook.login()            # show a browser window
+        wait_login()                # somehow wait for the user to log in
+        facebook.auth.getSession()  # get a session key
+        
+        For web apps, if you are passed an auth_token from Facebook, pass that in as a named parameter.
+        Otherwise call:
+        
+        facebook.auth.getSession()
+        
+        """
         self.api_key = api_key
         self.secret_key = secret_key
         self.session_key = None
-        self.auth_token = None
+        self.auth_token = auth_token
         self.secret = None
         self.in_canvas = False
         
@@ -424,9 +517,12 @@ class Facebook(object):
         self.auth = AuthProxy(self, 'facebook.auth')
 
 
-    def _hash_args(self, args):
+    def _hash_args(self, args, secret=None):
+        """Hashes arguments by joining key=value pairs, appending a secret, and then taking the MD5 hex digest."""
         hasher = md5.new(''.join(['%s=%s' % (x, args[x]) for x in sorted(args.keys())]))
-        if self.secret:
+        if secret:
+            hasher.updated(secret)
+        elif self.secret:
             hasher.update(self.secret)
         else:
             hasher.update(self.secret_key)
@@ -434,6 +530,7 @@ class Facebook(object):
 
 
     def _parse_response_item(self, node):
+        """Parses an XML response node from Facebook."""
         if node.nodeType == node.DOCUMENT_NODE and \
             node.childNodes[0].hasAttributes() and \
             node.childNodes[0].hasAttribute('list') and \
@@ -451,6 +548,7 @@ class Facebook(object):
 
 
     def _parse_response_dict(self, node):
+        """Parses an XML dictionary response node from Facebook."""
         result = {}
         for item in filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes):
             result[item.nodeName] = self._parse_response_item(item)
@@ -461,6 +559,7 @@ class Facebook(object):
 
 
     def _parse_response_list(self, node):
+        """Parses an XML list response node from Facebook."""
         result = []
         for item in filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes):
             result.append(self._parse_response_item(item))
@@ -468,12 +567,13 @@ class Facebook(object):
 
 
     def _check_error(self, response):
+        """Checks if the given Facebook response is an error, and then raises the appropriate exception."""
         if type(response) is dict and response.has_key('error_code'):
-            print (response['error_code'], response['error_msg'], response['request_args'])
             raise FacebookError(response['error_code'], response['error_msg'], response['request_args'])
 
 
     def __call__(self, method, args=None, secure=False):
+        """Make a call to Facebook's REST server."""
         if args is None:
             args = {}
         
@@ -514,9 +614,21 @@ class Facebook(object):
 
     # URL helpers
     def get_url(self, page, **args):
+        """
+        Returns one of the Facebook URLs (www.facebook.com/SOMEPAGE.php).
+        Named arguments are passed as GET query string parameters.
+        
+        """
         return 'http://www.facebook.com/%s.php?%s' % (page, urllib.urlencode(args))
 
+
     def get_login_url(self, next=None):
+        """
+        Returns the URL that the user should be redirected to in order to login.
+        
+        next -- the URL that Facebook should redirect to after login
+        
+        """
         args = {'api_key': self.api_key, 'v': '1.0'}
         
         if next is not None:
@@ -527,13 +639,20 @@ class Facebook(object):
         
         return 'http://www.facebook.com/login.php?%s' % urllib.urlencode(args)
 
+
     def login(self):
+        """Open a web browser telling the user to login to Facebook."""
         import webbrowser
         webbrowser.open(self.get_login_url())
 
 
     # Django helpers
     def redirect(self, url):
+        """
+        Helper for Django which redirects to another page. If inside a
+        canvas page, writes a <fb:redirect> instead to achieve the same effect.
+
+        """
         from django.http import HttpResponse, HttpResponseRedirect
 
         if self.in_canvas:
@@ -541,7 +660,16 @@ class Facebook(object):
         else:
             return HttpResponseRedirect(url)
 
+
     def check_session(self, request, next=''):
+        """
+        Checks the given Django HttpRequest for Facebook parameters such as
+        POST variables or an auth token. If the session is valid, returns None
+        and this object can now be used to access the Facebook API. Otherwise,
+        it returns an HttpResponse which either asks the user to log in or grant
+        access permissions to this application.
+        
+        """
         if request.method == 'POST':
             self.params = self.validate_signature(request.POST)
 
@@ -571,9 +699,11 @@ class Facebook(object):
             else:
                 return self.redirect(self.get_login_url(next=next))
 
+
     def validate_signature(self, post, prefix='fb_sig', timeout=None):
         """
         Validate parameters passed to an internal Facebook app from Facebook.
+
         """
         args = post.copy()
         del args[prefix]
@@ -590,11 +720,18 @@ class Facebook(object):
         else:
             return None
 
+
 try:
     from django.core.exceptions import ImproperlyConfigured
     from django.conf import settings
 
+
     def require_login(view, next=''):
+        """
+        Decorator for Django views that requires the user to be logged in.
+        The FacebookMiddleware must be installed.
+        
+        """
         def newview(request, *args, **kwargs):
             try:
                 fb = request.facebook
@@ -610,7 +747,13 @@ try:
 
         return newview
 
+
     class FacebookMiddleware(object):
+        """
+        Middleware that attaches a Facebook object to every incoming request.
+        
+        """
+
         def __init__(self, api_key=None, secret_key=None):
             self.api_key = api_key or settings.FACEBOOK_API_KEY
             self.secret_key = secret_key or settings.FACEBOOK_SECRET_KEY
