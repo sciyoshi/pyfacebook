@@ -509,6 +509,7 @@ class Facebook(object):
         self.session_key = None
         self.auth_token = auth_token
         self.secret = None
+        self.uid = None
         self.in_canvas = False
         
         for namespace in METHODS:
@@ -593,8 +594,7 @@ class Facebook(object):
             response = urllib2.urlopen(FACEBOOK_SECURE_URL, urllib.urlencode(args)).read()
         else:
             response = urllib2.urlopen(FACEBOOK_URL, urllib.urlencode(args)).read()
-        
-        
+
         if RESPONSE_FORMAT == 'JSON':
             result = simplejson.loads(response)
             
@@ -671,19 +671,20 @@ class Facebook(object):
         
         """
         if request.method == 'POST':
-            self.params = self.validate_signature(request.POST)
+            params = self.validate_signature(request.POST)
 
             if 'fb_sig_in_canvas' in request.POST and request.POST['fb_sig_in_canvas'] == '1':
                 self.in_canvas = True
 
-            if not self.params or 'session_key' not in self.params or 'user' not in self.params:
+            if params and 'session_key' in params and 'user' in params:
+                self.session_key = params['session_key']
+                self.uid = params['user']
+
+                if 'in_canvas' in params:
+                    self.in_canvas = params['in_canvas'] == '1'
+            else:
                 return self.redirect(self.get_url('tos', api_key=self.api_key, v='1.0', next=next))
 
-            self.session_key = self.params['session_key']
-            self.uid = self.params['user']
-
-            if 'in_canvas' in self.params:
-                self.in_canvas = self.params['in_canvas'] == '1'
 
         else:
             if 'auth_token' in request.GET:
@@ -725,27 +726,40 @@ try:
     from django.core.exceptions import ImproperlyConfigured
     from django.conf import settings
 
-
-    def require_login(view, next=''):
+    def require_login_next(next=''):
         """
         Decorator for Django views that requires the user to be logged in.
         The FacebookMiddleware must be installed.
-        
+
+        @require_login_next()
+        def some_view(request):
+            ...
         """
-        def newview(request, *args, **kwargs):
-            try:
-                fb = request.facebook
-            except:
-                raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
+        def decorator(view):
+            def newview(request, *args, **kwargs):
+                try:
+                    fb = request.facebook
+                except:
+                    raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
-            result = fb.check_session(request, next)
+                result = fb.check_session(request, next)
 
-            if result:
-                return result
+                if result:
+                    return result
 
-            return view(request, *args, **kwargs)
+                return view(request, *args, **kwargs)
 
-        return newview
+            return newview
+
+        return decorator
+
+    def require_login(view):
+        """
+        Decorator for Django views that requires the user to be logged in.
+        The FacebookMiddleware must be installed. Kept for compatibility,
+        use require_login_next() instead.
+        """
+        return require_login_next()
 
 
     class FacebookMiddleware(object):
