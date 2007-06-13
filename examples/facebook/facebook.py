@@ -83,7 +83,7 @@ except:
     print 'apt-get install python-simplejson on a Debian-like system.'
     print ''
     print 'Falling back to XML...'
-    
+
     from xml.dom import minidom
     RESPONSE_FORMAT = 'XML'
 
@@ -289,14 +289,14 @@ class Proxy(object):
 def __generate_proxies():
     for namespace in METHODS:
         methods = {}
-        
+
         for method in METHODS[namespace]:
             params = ['self']
             body = ['args = {}']
-            
+
             for param_name, param_type, param_options in METHODS[namespace][method]:
                 param = param_name
-            
+
                 for option in param_options:
                     if isinstance(option, tuple) and option[0] == 'default':
                         if param_type == list:
@@ -304,28 +304,28 @@ def __generate_proxies():
                             body.append('if %s is None: %s = %s' % (param_name, param_name, repr(option[1])))
                         else:
                             param = '%s=%s' % (param_name, repr(option[1]))
-                
+
                 if 'optional' in param_options:
                     param = '%s=None' % param_name
                     body.append('if %s is not None: args[\'%s\'] = %s' % (param_name, param_name, param_name))
                 else:
                     body.append('args[\'%s\'] = %s' % (param_name, param_name))
-                
+
                 params.append(param)
-            
+
             # simple docstring to refer them to Facebook API docs
             body.insert(0, '"""Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=%s.%s"""' % (namespace, method))
 
             body.insert(0, 'def %s(%s):' % (method, ', '.join(params)))
-            
+
             body.append('return self(\'%s\', args)' % method)
-            
+
             exec('\n    '.join(body))
-            
+
             methods[method] = eval(method)
-            
+
         proxy = type('%sProxy' % namespace.title(), (Proxy, ), methods)
-        
+
         globals()[proxy.__name__] = proxy
 
 __generate_proxies()
@@ -370,7 +370,7 @@ class PhotosProxy(PhotosProxy):
     def upload(self, image, aid=None, caption=None):
         """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=photos.upload"""
         args = {}
-        
+
         if aid is not None:
             args['aid'] = aid
 
@@ -407,7 +407,7 @@ class PhotosProxy(PhotosProxy):
 
         if RESPONSE_FORMAT == 'JSON':
             result = simplejson.loads(response)
-            
+
             self._client._check_error(result)
         else:
             dom = minidom.parseString(response)
@@ -429,7 +429,7 @@ class PhotosProxy(PhotosProxy):
         boundary = '-------tHISiStheMulTIFoRMbOUNDaRY'
         crlf = '\r\n'
         l = []
-        
+
         for (key, value) in fields:
             l.append('--' + boundary)
             l.append('Content-Disposition: form-data; name="%s"' % str(key))
@@ -458,62 +458,63 @@ class PhotosProxy(PhotosProxy):
 class Facebook(object):
     """
     Provides access to the Facebook API.
-    
+
     Instance Variables:
-    
+
     api_key
         Your API key, as set in the constructor.
-    
+
     auth_token
         The auth token that Facebook gives you, either with facebook.auth.createToken,
         or through a GET parameter.
-    
+
     in_canvas
         True if the current request is for a canvas page.
-    
+
     secret
         Secret that is used after getSession for desktop apps.
-    
+
     secret_key
         Your application's secret key, as set in the constructor.
-    
+
     session_key
         The current session key.
-    
+
     uid
         After a session is created, you can get the user's UID with this variable.
-    
+
     ----------------------------------------------------------------------
-    
+
     """
 
     def __init__(self, api_key, secret_key, auth_token=None):
         """
         Initializes a new Facebook object which provides wrappers for the Facebook API.
-        
+
         If this is a desktop application, the next couple of steps you might want to take are:
-        
+
         facebook.auth.createToken() # create an auth token
         facebook.login()            # show a browser window
         wait_login()                # somehow wait for the user to log in
         facebook.auth.getSession()  # get a session key
-        
+
         For web apps, if you are passed an auth_token from Facebook, pass that in as a named parameter.
         Otherwise call:
-        
+
         facebook.auth.getSession()
-        
+
         """
         self.api_key = api_key
         self.secret_key = secret_key
         self.session_key = None
         self.auth_token = auth_token
         self.secret = None
+        self.uid = None
         self.in_canvas = False
-        
+
         for namespace in METHODS:
             self.__dict__[namespace] = eval('%sProxy(self, \'%s\')' % (namespace.title(), 'facebook.%s' % namespace))
-        
+
         self.auth = AuthProxy(self, 'facebook.auth')
 
 
@@ -576,28 +577,27 @@ class Facebook(object):
         """Make a call to Facebook's REST server."""
         if args is None:
             args = {}
-        
+
         for arg in args.items():
             if type(arg[1]) == list:
                 args[arg[0]] = ','.join(arg[1])
-        
+
         args['method'] = method
         args['api_key'] = self.api_key
         args['v'] = '1.0'
         args['format'] = RESPONSE_FORMAT
         args['sig'] = self._hash_args(args)
-        
+
         post_data = urllib.urlencode(args)
-        
+
         if secure:
             response = urllib2.urlopen(FACEBOOK_SECURE_URL, urllib.urlencode(args)).read()
         else:
             response = urllib2.urlopen(FACEBOOK_URL, urllib.urlencode(args)).read()
-        
-        
+
         if RESPONSE_FORMAT == 'JSON':
             result = simplejson.loads(response)
-            
+
             self._check_error(result)
         else:
             dom = minidom.parseString(response)
@@ -617,7 +617,7 @@ class Facebook(object):
         """
         Returns one of the Facebook URLs (www.facebook.com/SOMEPAGE.php).
         Named arguments are passed as GET query string parameters.
-        
+
         """
         return 'http://www.facebook.com/%s.php?%s' % (page, urllib.urlencode(args))
 
@@ -625,18 +625,18 @@ class Facebook(object):
     def get_login_url(self, next=None):
         """
         Returns the URL that the user should be redirected to in order to login.
-        
+
         next -- the URL that Facebook should redirect to after login
-        
+
         """
         args = {'api_key': self.api_key, 'v': '1.0'}
-        
+
         if next is not None:
             args['next'] = next
-        
+
         if self.auth_token is not None:
             args['auth_token'] = self.auth_token
-        
+
         return 'http://www.facebook.com/login.php?%s' % urllib.urlencode(args)
 
 
@@ -668,22 +668,23 @@ class Facebook(object):
         and this object can now be used to access the Facebook API. Otherwise,
         it returns an HttpResponse which either asks the user to log in or grant
         access permissions to this application.
-        
+
         """
         if request.method == 'POST':
-            self.params = self.validate_signature(request.POST)
+            params = self.validate_signature(request.POST)
 
             if 'fb_sig_in_canvas' in request.POST and request.POST['fb_sig_in_canvas'] == '1':
                 self.in_canvas = True
 
-            if not self.params or 'session_key' not in self.params or 'user' not in self.params:
+            if params and 'session_key' in params and 'user' in params:
+                self.session_key = params['session_key']
+                self.uid = params['user']
+
+                if 'in_canvas' in params:
+                    self.in_canvas = params['in_canvas'] == '1'
+            else:
                 return self.redirect(self.get_url('tos', api_key=self.api_key, v='1.0', next=next))
 
-            self.session_key = self.params['session_key']
-            self.uid = self.params['user']
-
-            if 'in_canvas' in self.params:
-                self.in_canvas = self.params['in_canvas'] == '1'
 
         else:
             if 'auth_token' in request.GET:
@@ -725,33 +726,46 @@ try:
     from django.core.exceptions import ImproperlyConfigured
     from django.conf import settings
 
-
-    def require_login(view, next=''):
+    def require_login_next(next=''):
         """
         Decorator for Django views that requires the user to be logged in.
         The FacebookMiddleware must be installed.
-        
+
+        @require_login_next()
+        def some_view(request):
+            ...
         """
-        def newview(request, *args, **kwargs):
-            try:
-                fb = request.facebook
-            except:
-                raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
+        def decorator(view):
+            def newview(request, *args, **kwargs):
+                try:
+                    fb = request.facebook
+                except:
+                    raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
-            result = fb.check_session(request, next)
+                result = fb.check_session(request, next)
 
-            if result:
-                return result
+                if result:
+                    return result
 
-            return view(request, *args, **kwargs)
+                return view(request, *args, **kwargs)
 
-        return newview
+            return newview
+
+        return decorator
+
+    def require_login(view):
+        """
+        Decorator for Django views that requires the user to be logged in.
+        The FacebookMiddleware must be installed. Kept for compatibility,
+        use require_login_next() instead.
+        """
+        return require_login_next()
 
 
     class FacebookMiddleware(object):
         """
         Middleware that attaches a Facebook object to every incoming request.
-        
+
         """
 
         def __init__(self, api_key=None, secret_key=None):
@@ -770,7 +784,7 @@ if __name__ == '__main__':
 
     api_key = ''
     secret_key = ''
-    
+
     facebook = Facebook(api_key, secret_key)
 
     facebook.auth.createToken()
@@ -784,9 +798,9 @@ if __name__ == '__main__':
     facebook.auth.getSession()
     print 'Session Key:   ', facebook.session_key
     print 'Your UID:      ', facebook.uid
-    
+
     info = facebook.users.getInfo([facebook.uid], ['name', 'birthday', 'affiliations', 'sex'])[0]
-    
+
     print 'Your Name:     ', info['name']
     print 'Your Birthday: ', info['birthday']
     print 'Your Gender:   ', info['sex']
@@ -798,6 +812,6 @@ if __name__ == '__main__':
         print friend['name'], 'has a birthday on', friend['birthday'], 'and is', friend['relationship_status']
 
     arefriends = facebook.friends.areFriends([friends[0]['uid']], [friends[1]['uid']])
- 
+
     photos = facebook.photos.getAlbums(facebook.uid)
- 
+
