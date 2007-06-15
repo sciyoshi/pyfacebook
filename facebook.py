@@ -726,7 +726,7 @@ try:
     from django.core.exceptions import ImproperlyConfigured
     from django.conf import settings
 
-    def require_login_next(next=''):
+    def require_login(next=''):
         """
         Decorator for Django views that requires the user to be logged in.
         The FacebookMiddleware must be installed.
@@ -752,14 +752,6 @@ try:
             return newview
 
         return decorator
-
-    def require_login(view):
-        """
-        Decorator for Django views that requires the user to be logged in.
-        The FacebookMiddleware must be installed. Kept for compatibility,
-        use require_login_next() instead.
-        """
-        return require_login_next()
 
 
     class FacebookMiddleware(object):
