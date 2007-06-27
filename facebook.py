@@ -146,8 +146,8 @@ METHODS = {
     'notifications': {
         'send': [
             ('to_ids', list, []),
-            ('markup', str, []),
-            ('no_email', bool, []),
+            ('notification', str, []),
+            ('email', str, ['optional']),
         ],
 
         'sendRequest': [
@@ -461,6 +461,9 @@ class Facebook(object):
 
     Instance Variables:
 
+    added
+        True if the user has added this application.
+
     api_key
         Your API key, as set in the constructor.
 
@@ -511,6 +514,7 @@ class Facebook(object):
         self.secret = None
         self.uid = None
         self.in_canvas = False
+        self.added = False
 
         for namespace in METHODS:
             self.__dict__[namespace] = eval('%sProxy(self, \'%s\')' % (namespace.title(), 'facebook.%s' % namespace))
@@ -675,6 +679,9 @@ class Facebook(object):
 
             if 'fb_sig_in_canvas' in request.POST and request.POST['fb_sig_in_canvas'] == '1':
                 self.in_canvas = True
+
+            if 'fb_sig_added' in request.POST and request.POST['fb_sig_added'] == '1':
+                self.added = True
 
             if params and 'session_key' in params and 'user' in params:
                 self.session_key = params['session_key']
