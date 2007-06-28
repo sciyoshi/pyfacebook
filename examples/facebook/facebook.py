@@ -557,7 +557,7 @@ class Facebook(object):
         elif node.nodeType == node.ELEMENT_NODE and \
             node.hasAttributes() and \
             node.hasAttribute('list') and \
-            node.getAttribute('list')=="True":
+            node.getAttribute('list')=="true":
             return self._parse_response_list(node)
         elif len(filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes)) > 0:
             return self._parse_response_dict(node)
@@ -689,26 +689,6 @@ class Facebook(object):
         """
         if request.method == 'POST':
             params = self.validate_signature(request.POST)
-
-            if 'fb_sig_in_canvas' in request.POST and request.POST['fb_sig_in_canvas'] == '1':
-                self.in_canvas = True
-
-            if 'fb_sig_added' in request.POST and request.POST['fb_sig_added'] == '1':
-                self.added = True
-
-            if 'fb_sig_friends' in request.POST:
-                self._friends = request.POST['fb_sig_friends'].split(',')
-
-            if params and 'session_key' in params and 'user' in params:
-                self.session_key = params['session_key']
-                self.uid = params['user']
-
-                if 'in_canvas' in params:
-                    self.in_canvas = params['in_canvas'] == '1'
-            else:
-                return self.redirect(self.get_url('tos', api_key=self.api_key, v='1.0', next=next))
-
-
         else:
             if 'auth_token' in request.GET:
                 self.auth_token = request.GET['auth_token']
@@ -717,11 +697,28 @@ class Facebook(object):
                     self.auth.getSession()
                 except:
                     self.auth_token = None
-
                     return self.redirect(self.get_login_url(next=next))
+                return
 
-            else:
-                return self.redirect(self.get_login_url(next=next))
+            params = self.validate_signature(request.GET)
+
+        if not params:
+            return self.redirect(self.get_login_url(next=next))
+
+        if 'session_key' in params and 'user' in params:
+            self.session_key = params['session_key']
+            self.uid = params['user']
+        else:
+            return self.redirect(self.get_url('tos', api_key=self.api_key, v='1.0', next=next))
+
+        if params.get('in_canvas') == '1':
+            self.in_canvas = True
+
+        if params.get('added') == '1':
+            self.added = True
+
+        if 'friends' in params:
+            self._friends = params['friends'].split(',')
 
 
     def validate_signature(self, post, prefix='fb_sig', timeout=None):
