@@ -461,6 +461,9 @@ class Facebook(object):
 
     Instance Variables:
 
+    added
+        True if the user has added this application.
+
     api_key
         Your API key, as set in the constructor.
 
@@ -511,6 +514,7 @@ class Facebook(object):
         self.secret = None
         self.uid = None
         self.in_canvas = False
+        self.added = False
 
         for namespace in METHODS:
             self.__dict__[namespace] = eval('%sProxy(self, \'%s\')' % (namespace.title(), 'facebook.%s' % namespace))
@@ -580,7 +584,7 @@ class Facebook(object):
 
         for arg in args.items():
             if type(arg[1]) == list:
-                args[arg[0]] = ','.join(arg[1])
+                args[arg[0]] = ','.join(str(a) for a in arg[1])
 
         args['method'] = method
         args['api_key'] = self.api_key
@@ -676,6 +680,9 @@ class Facebook(object):
             if 'fb_sig_in_canvas' in request.POST and request.POST['fb_sig_in_canvas'] == '1':
                 self.in_canvas = True
 
+            if 'fb_sig_added' in request.POST and request.POST['fb_sig_added'] == '1':
+                self.added = True
+
             if params and 'session_key' in params and 'user' in params:
                 self.session_key = params['session_key']
                 self.uid = params['user']
@@ -731,7 +738,7 @@ try:
         Decorator for Django views that requires the user to be logged in.
         The FacebookMiddleware must be installed.
 
-        @require_login()
+        @require_login_next()
         def some_view(request):
             ...
         """

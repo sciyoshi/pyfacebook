@@ -584,7 +584,7 @@ class Facebook(object):
 
         for arg in args.items():
             if type(arg[1]) == list:
-                args[arg[0]] = ','.join(arg[1])
+                args[arg[0]] = ','.join(str(a) for a in arg[1])
 
         args['method'] = method
         args['api_key'] = self.api_key
