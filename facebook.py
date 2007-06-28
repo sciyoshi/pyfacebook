@@ -367,6 +367,13 @@ class AuthProxy(Proxy):
         self._client.auth_token = result
         return self._client.auth_token
 
+# inherit from ourselves!
+class FriendsProxy(FriendsProxy):
+    """Special proxy for facebook.friends."""
+    def get(self):
+        if self._client._friends:
+            return self._client._friends
+        return super(FriendsProxy, self).get()
 
 # inherit from ourselves!
 class PhotosProxy(PhotosProxy):
@@ -520,6 +527,7 @@ class Facebook(object):
         self.uid = None
         self.in_canvas = False
         self.added = False
+        self._friends = None
 
         for namespace in METHODS:
             self.__dict__[namespace] = eval('%sProxy(self, \'%s\')' % (namespace.title(), 'facebook.%s' % namespace))
@@ -687,6 +695,9 @@ class Facebook(object):
 
             if 'fb_sig_added' in request.POST and request.POST['fb_sig_added'] == '1':
                 self.added = True
+
+            if 'fb_sig_friends' in request.POST:
+                self._friends = request.POST['fb_sig_friends'].split(',')
 
             if params and 'session_key' in params and 'user' in params:
                 self.session_key = params['session_key']
