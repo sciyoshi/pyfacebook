@@ -557,7 +557,7 @@ class Facebook(object):
         elif node.nodeType == node.ELEMENT_NODE and \
             node.hasAttributes() and \
             node.hasAttribute('list') and \
-            node.getAttribute('list')=="True":
+            node.getAttribute('list')=="true":
             return self._parse_response_list(node)
         elif len(filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes)) > 0:
             return self._parse_response_dict(node)
