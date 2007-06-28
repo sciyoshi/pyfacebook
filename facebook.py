@@ -259,6 +259,11 @@ METHODS = {
         'refreshRefUrl': [
             ('url', str, []),
         ],
+
+        'setRefHandle': [
+            ('handle', str, []),
+            ('fbml', str, []),
+        ],
     },
 }
 
