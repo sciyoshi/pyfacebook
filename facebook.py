@@ -359,6 +359,7 @@ class AuthProxy(Proxy):
         self._client.session_key = result['session_key']
         self._client.uid = result['uid']
         self._client.secret = result.get('secret')
+        self._client.session_key_expires = result['expires']
         return result
 
     def createToken(self):
@@ -495,6 +496,9 @@ class Facebook(object):
     session_key
         The current session key.
 
+    session_key_expires
+        The UNIX time of when this session key expires.
+
     uid
         After a session is created, you can get the user's UID with this variable.
 
@@ -522,6 +526,7 @@ class Facebook(object):
         self.api_key = api_key
         self.secret_key = secret_key
         self.session_key = None
+        self.session_key_expires = None
         self.auth_token = auth_token
         self.secret = None
         self.uid = None
@@ -716,6 +721,9 @@ class Facebook(object):
 
         if params.get('added') == '1':
             self.added = True
+
+        if params.get('expires'):
+            self.session_key_expires = int(params['expires'])
 
         if 'friends' in params:
             self._friends = params['friends'].split(',')
