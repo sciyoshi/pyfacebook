@@ -400,7 +400,7 @@ class PhotosProxy(PhotosProxy):
 
         args['sig'] = self._client._hash_args(args)
 
-        content_type, body = self.__encode_multipart_formdata(list(args.iteritems()), [(image, file(image).read())])
+        content_type, body = self.__encode_multipart_formdata(list(args.iteritems()), [(image, open(image, 'rb').read())])
         h = httplib.HTTP('api.facebook.com')
         h.putrequest('POST', '/restserver.php')
         h.putheader('Content-Type', content_type)
