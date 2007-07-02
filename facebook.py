@@ -754,6 +754,20 @@ try:
     from django.core.exceptions import ImproperlyConfigured
     from django.conf import settings
 
+    try:
+        from threading import local
+    except ImportError:
+        from django.utils._threading_local import local
+
+    _thread_locals = local()
+
+    def get_facebook_client():
+        """
+        Get the current Facebook object for the calling thread.
+
+        """
+        return getattr(_thread_locals, 'facebook', None)
+
     def require_login(next=''):
         """
         Decorator for Django views that requires the user to be logged in.
@@ -762,6 +776,7 @@ try:
         @require_login_next()
         def some_view(request):
             ...
+
         """
         def decorator(view):
             def newview(request, *args, **kwargs):
@@ -785,6 +800,8 @@ try:
     class FacebookMiddleware(object):
         """
         Middleware that attaches a Facebook object to every incoming request.
+        The Facebook object created can also be accessed from models for the
+        current thread by using get_facebook_client().
 
         """
 
@@ -794,6 +811,7 @@ try:
 
         def process_request(self, request):
             request.facebook = Facebook(self.api_key, self.secret_key)
+            _thread_locals.facebook = request.facebook
 
 except:
     pass
