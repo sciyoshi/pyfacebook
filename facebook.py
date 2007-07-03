@@ -710,14 +710,14 @@ class Facebook(object):
         if not params:
             return self.redirect(self.get_login_url(next=next))
 
+        if params.get('in_canvas') == '1':
+            self.in_canvas = True
+
         if 'session_key' in params and 'user' in params:
             self.session_key = params['session_key']
             self.uid = params['user']
         else:
             return self.redirect(self.get_url('tos', api_key=self.api_key, v='1.0', next=next))
-
-        if params.get('in_canvas') == '1':
-            self.in_canvas = True
 
         if params.get('added') == '1':
             self.added = True
