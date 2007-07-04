@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 #
 # pyfacebook - Python bindings for the Facebook API
 #
@@ -242,7 +242,7 @@ METHODS = {
 
         'getAlbums': [
             ('uid', int, ['optional']),
-            ('pids', list, ['optional']),
+            ('aids', list, ['optional']),
         ],
 
         'getTags': [
@@ -644,7 +644,7 @@ class Facebook(object):
         return 'http://www.facebook.com/%s.php?%s' % (page, urllib.urlencode(args))
 
 
-    def get_login_url(self, next=None):
+    def get_login_url(self, next=None, popup=False):
         """
         Returns the URL that the user should be redirected to in order to login.
 
@@ -656,16 +656,19 @@ class Facebook(object):
         if next is not None:
             args['next'] = next
 
+        if popup is True:
+            args['popup'] = 1
+
         if self.auth_token is not None:
             args['auth_token'] = self.auth_token
 
         return 'http://www.facebook.com/login.php?%s' % urllib.urlencode(args)
 
 
-    def login(self):
+    def login(self, popup=False):
         """Open a web browser telling the user to login to Facebook."""
         import webbrowser
-        webbrowser.open(self.get_login_url())
+        webbrowser.open(self.get_login_url(popup=popup))
 
 
     # Django helpers
@@ -826,7 +829,9 @@ if __name__ == '__main__':
     facebook = Facebook(api_key, secret_key)
 
     facebook.auth.createToken()
+
     # Show login window
+    # Set popup=True if you want login without navigational elements
     facebook.login()
 
     # Login to the window, then press enter
