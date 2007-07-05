@@ -72,7 +72,8 @@ def web_app(request):
 # ---------------------------
 
 def desktop_app():
-    
+    from facebook import Facebook
+
     # Get api_key and secret_key from a file
     fbs = open(FB_SETTINGS).readlines()
     facebook = Facebook(fbs[0].strip(), fbs[1].strip())
@@ -86,20 +87,21 @@ def desktop_app():
     raw_input()
 
     facebook.auth.getSession()
-    info = facebook.users.getInfo([facebook.uid], ['name', 'birthday', 'affiliations', 'gender'])[0]
+    info = facebook.users.getInfo([facebook.uid], ['name', 'birthday', 'affiliations', 'sex'])[0]
 
-    print 'Name: ', info['name']
-    print 'ID: ', facebook.uid
-    print 'Birthday: ', info['birthday']
-    print 'Gender: ', info['gender']
+    for attr in info:
+        print '%s: %s' % (attr, info[attr])
 
     friends = facebook.friends.get()
     friends = facebook.users.getInfo(friends[0:5], ['name', 'birthday', 'relationship_status'])
 
     for friend in friends:
-        print friend['name'], 'has a birthday on', friend['birthday'], 'and is', friend['relationship_status']
+        if 'birthday' in friend:
+            print friend['name'], 'has a birthday on', friend['birthday'], 'and is', friend['relationship_status']
+        else:
+            print friend['name'], 'has no birthday and is', friend['relationship_status']
 
-    arefriends = facebook.friends.areFriends([friends[0]['id']], [friends[1]['id']])
+    arefriends = facebook.friends.areFriends([friends[0]['uid']], [friends[1]['uid']])
 
-    photos = facebook.photos.getAlbums(friends[1]['id'])
+    photos = facebook.photos.getAlbums(friends[1]['uid'])
     print photos
