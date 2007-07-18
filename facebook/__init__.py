@@ -2,36 +2,9 @@
 #
 # pyfacebook - Python bindings for the Facebook API
 #
-# Copyright (c) 2007 Samuel Cormier-Iijima and Niran Babalola
-# All rights reserved.
-#
-# Updated 2007 for API v1.0 David Edelstein
-#
-# Thanks to Jason Prado for his Python client to the Facebook API
-#
-# Thanks to Max Battcher for the proxy idea
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-# 1. Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in the
-#    documentation and/or other materials provided with the distribution.
-# 3. The name of the author may not be used to endorse or promote products
-#    derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# See AUTHORS for a list of authors, and COPYING for
+# copyright information.
+
 
 """
 Python bindings for the Facebook API (pyfacebook - http://code.google.com/p/pyfacebook)
@@ -42,27 +15,15 @@ For more information, see
 
 Home Page: http://code.google.com/p/pyfacebook
 Developer Wiki: http://wiki.developers.facebook.com/index.php/Python
+Facebook IRC Channel: #facebook on irc.freenode.net
 
 PyFacebook can use simplejson if it is installed, which
 is much faster than XML and also uses less bandwith. Go to
 http://undefined.org/python/#simplejson to download it, or do
 apt-get install python-simplejson on a Debian-like system.
 
-Also, if Django is installed, some extra features are included.
-FacebookMiddleware is Django middleware that attaches a "facebook"
-object to every incoming request. There are also decorators for
-Django views that make authentication easier.
-
-Copyright (c) 2007 Samuel Cormier-Iijima and Niran Babalola
-All rights reserved.
-
 Licensed under the LGPL.
 """
-
-VERSION = '1.0'
-
-# we only want to export the Facebook object and version info
-__all__ = ['Facebook', 'require_login']
 
 import md5
 import sys
@@ -87,7 +48,12 @@ except:
     from xml.dom import minidom
     RESPONSE_FORMAT = 'XML'
 
+__all__ = ['Facebook']
+
+VERSION = '0.1'
+
 # REST URLs
+# Change these to /bestserver.php to use the bestserver.
 FACEBOOK_URL = 'http://api.facebook.com/restserver.php'
 FACEBOOK_SECURE_URL = 'https://api.facebook.com/restserver.php'
 
@@ -268,11 +234,6 @@ METHODS = {
 }
 
 
-def _get_element_text(elem):
-    """Get a node's text by joining all of the text child nodes."""
-    return ''.join(node.data for node in elem.childNodes if node.nodeType == node.TEXT_NODE)
-
-
 class Proxy(object):
     """Represents a "namespace" of Facebook API calls."""
 
@@ -333,6 +294,7 @@ def __generate_proxies():
 
         globals()[proxy.__name__] = proxy
 
+
 __generate_proxies()
 
 
@@ -368,13 +330,16 @@ class AuthProxy(Proxy):
         self._client.auth_token = result
         return self._client.auth_token
 
+
 # inherit from ourselves!
 class FriendsProxy(FriendsProxy):
     """Special proxy for facebook.friends."""
+
     def get(self):
         if self._client._friends:
             return self._client._friends
         return super(FriendsProxy, self).get()
+
 
 # inherit from ourselves!
 class PhotosProxy(PhotosProxy):
@@ -436,9 +401,7 @@ class PhotosProxy(PhotosProxy):
 
 
     def __encode_multipart_formdata(self, fields, files):
-        """
-        Encodes a multipart/form-data message to upload an image.
-        """
+        """Encodes a multipart/form-data message to upload an image."""
         boundary = '-------tHISiStheMulTIFoRMbOUNDaRY'
         crlf = '\r\n'
         l = []
@@ -462,9 +425,7 @@ class PhotosProxy(PhotosProxy):
 
 
     def __get_content_type(self, filename):
-        """
-        Returns a guess at the MIME type of the file from the filename.
-        """
+        """Returns a guess at the MIME type of the file from the filename."""
         return str(mimetypes.guess_type(filename)[0]) or 'application/octet-stream'
 
 
@@ -567,7 +528,7 @@ class Facebook(object):
         elif len(filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes)) > 0:
             return self._parse_response_dict(node)
         else:
-            return _get_element_text(node)
+            return ''.join(node.data for node in elem.childNodes if node.nodeType == node.TEXT_NODE)
 
 
     def _parse_response_dict(self, node):
@@ -671,19 +632,13 @@ class Facebook(object):
         webbrowser.open(self.get_login_url(popup=popup))
 
 
-    # Django helpers
     def redirect(self, url):
         """
-        Helper for Django which redirects to another page. If inside a
-        canvas page, writes a <fb:redirect> instead to achieve the same effect.
+        Redirects to the given URL, depending on if a request is in the
+        canvas. Must be implemented in subclasses.
 
         """
-        from django.http import HttpResponse, HttpResponseRedirect
-
-        if self.in_canvas:
-            return HttpResponse('<fb:redirect url="%s" />' % (url, ))
-        else:
-            return HttpResponseRedirect(url)
+        raise NotImplementedError('redirect() must be implemented in subclasses.')
 
 
     def check_session(self, request, next=''):
@@ -695,6 +650,9 @@ class Facebook(object):
         access permissions to this application.
 
         """
+        import sys
+        self.in_canvas = (request.POST.get('fb_sig_in_canvas') == '1')
+
         if request.method == 'POST':
             params = self.validate_signature(request.POST)
         else:
@@ -703,12 +661,13 @@ class Facebook(object):
 
                 try:
                     self.auth.getSession()
-                except:
+                except Exception, e:
                     self.auth_token = None
                     return self.redirect(self.get_login_url(next=next))
                 return
 
             params = self.validate_signature(request.GET)
+        sys.stderr.write(str(params) + '\n')
 
         if not params:
             return self.redirect(self.get_login_url(next=next))
@@ -738,6 +697,10 @@ class Facebook(object):
 
         """
         args = post.copy()
+
+        if prefix not in args:
+            return None
+
         del args[prefix]
 
         if timeout and '%s_time' % prefix in post and time.time() - float(post['%s_time' % prefix]) > timeout:
@@ -751,73 +714,6 @@ class Facebook(object):
             return args
         else:
             return None
-
-
-try:
-    from django.core.exceptions import ImproperlyConfigured
-    from django.conf import settings
-
-    try:
-        from threading import local
-    except ImportError:
-        from django.utils._threading_local import local
-
-    _thread_locals = local()
-
-    def get_facebook_client():
-        """
-        Get the current Facebook object for the calling thread.
-
-        """
-        return getattr(_thread_locals, 'facebook', None)
-
-    def require_login(next=''):
-        """
-        Decorator for Django views that requires the user to be logged in.
-        The FacebookMiddleware must be installed.
-
-        @require_login_next()
-        def some_view(request):
-            ...
-
-        """
-        def decorator(view):
-            def newview(request, *args, **kwargs):
-                try:
-                    fb = request.facebook
-                except:
-                    raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
-
-                result = fb.check_session(request, next)
-
-                if result:
-                    return result
-
-                return view(request, *args, **kwargs)
-
-            return newview
-
-        return decorator
-
-
-    class FacebookMiddleware(object):
-        """
-        Middleware that attaches a Facebook object to every incoming request.
-        The Facebook object created can also be accessed from models for the
-        current thread by using get_facebook_client().
-
-        """
-
-        def __init__(self, api_key=None, secret_key=None):
-            self.api_key = api_key or settings.FACEBOOK_API_KEY
-            self.secret_key = secret_key or settings.FACEBOOK_SECRET_KEY
-
-        def process_request(self, request):
-            request.facebook = Facebook(self.api_key, self.secret_key)
-            _thread_locals.facebook = request.facebook
-
-except:
-    pass
 
 
 if __name__ == '__main__':

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from distutils.core import setup
 
 setup(name='pyfacebook',
@@ -6,4 +8,4 @@ setup(name='pyfacebook',
       author='Samuel Cormier-Iijima',
       author_email='sciyoshi@gmail.com',
       url='http://code.google.com/p/pyfacebook',
-      py_modules=['facebook'])
+      packages=['facebook'])
