@@ -53,8 +53,6 @@ def require_login(next=''):
 
             result = fb.check_session(request, next)
 
-            import sys
-            sys.stderr.write(str(result))
             if result:
                 return result
 
