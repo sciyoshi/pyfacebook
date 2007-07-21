@@ -135,7 +135,7 @@ from models import User
 # we can redirect to it if somebody tries to access
 # our pages directly. If you are writing an external
 # Facebook app, you wouldn't need this.
-app_url = 'http://apps.facebook.com/tunelist/'
+app_url = 'http://apps.facebook.com/canvaspage/'
 
 # We'll require login for our canvas page. This
 # isn't necessarily a good idea, as we might want
