@@ -31,7 +31,10 @@ def get_facebook_client():
     Get the current Facebook object for the calling thread.
 
     """
-    return getattr(_thread_locals, 'facebook', None)
+    try:
+        return _thread_locals.facebook
+    except AttributeError:
+        raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
 
 def require_login(next=''):

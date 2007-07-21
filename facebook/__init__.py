@@ -528,7 +528,7 @@ class Facebook(object):
         elif len(filter(lambda x: x.nodeType == x.ELEMENT_NODE, node.childNodes)) > 0:
             return self._parse_response_dict(node)
         else:
-            return ''.join(node.data for node in elem.childNodes if node.nodeType == node.TEXT_NODE)
+            return ''.join(node.data for node in node.childNodes if node.nodeType == node.TEXT_NODE)
 
 
     def _parse_response_dict(self, node):
@@ -650,7 +650,6 @@ class Facebook(object):
         access permissions to this application.
 
         """
-        import sys
         self.in_canvas = (request.POST.get('fb_sig_in_canvas') == '1')
 
         if request.method == 'POST':
@@ -667,7 +666,6 @@ class Facebook(object):
                 return
 
             params = self.validate_signature(request.GET)
-        sys.stderr.write(str(params) + '\n')
 
         if not params:
             return self.redirect(self.get_login_url(next=next))
