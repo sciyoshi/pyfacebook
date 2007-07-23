@@ -14,6 +14,10 @@ except ImportError:
 _thread_locals = local()
 
 class Facebook(facebook.Facebook):
+    def get_app_url(self):
+        """Get the URL for this app's canvas page, according to app_name."""
+        return 'http://apps.facebook.com/%s/' % self.app_name
+
     def redirect(self, url):
         """
         Helper for Django which redirects to another page. If inside a
@@ -37,29 +41,42 @@ def get_facebook_client():
         raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
 
-def require_login(next=''):
+def require_login(next='', internal=True):
     """
     Decorator for Django views that requires the user to be logged in.
     The FacebookMiddleware must be installed.
 
-    @require_login_next()
+    @require_login()
     def some_view(request):
         ...
 
     """
     def decorator(view):
         def newview(request, *args, **kwargs):
+            next = newview.next
+            internal = newview.internal
+
             try:
                 fb = request.facebook
             except:
                 raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
+
+            if callable(next):
+                next = next(request.path)
+            elif isinstance(next, int):
+                next = '/'.join(request.path.split('/')[next + 1:])
 
             result = fb.check_session(request, next)
 
             if result:
                 return result
 
+            if internal and request.method == 'GET' and self.app_name:
+                return request.facebook.redirect('%s%s' % (self.get_app_url(), next))
+
             return view(request, *args, **kwargs)
+        newview.next = next
+        newview.internal = internal
         return newview
     return decorator
 
@@ -76,12 +93,13 @@ class FacebookMiddleware(object):
 
     """
 
-    def __init__(self, api_key=None, secret_key=None):
+    def __init__(self, api_key=None, secret_key=None, app_name=None):
         self.api_key = api_key or settings.FACEBOOK_API_KEY
         self.secret_key = secret_key or settings.FACEBOOK_SECRET_KEY
+        self.app_name = app_name or getattr(settings, 'FACEBOOK_APP_NAME', None)
 
     def process_request(self, request):
-        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key)
+        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name)
 
 
 if __name__ == '__main__':

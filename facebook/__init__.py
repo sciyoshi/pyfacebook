@@ -441,6 +441,10 @@ class Facebook(object):
     api_key
         Your API key, as set in the constructor.
 
+    app_name
+        Your application's name, i.e. the APP_NAME in apps.facebook.com/APP_NAME/ if
+        this is for an internal web application. Used by some helpers for redirecting.
+
     auth_token
         The auth token that Facebook gives you, either with facebook.auth.createToken,
         or through a GET parameter.
@@ -467,7 +471,7 @@ class Facebook(object):
 
     """
 
-    def __init__(self, api_key, secret_key, auth_token=None):
+    def __init__(self, api_key, secret_key, auth_token=None, app_name=None):
         """
         Initializes a new Facebook object which provides wrappers for the Facebook API.
 
@@ -493,6 +497,7 @@ class Facebook(object):
         self.uid = None
         self.in_canvas = False
         self.added = False
+        self.app_name = app_name
         self._friends = None
 
         for namespace in METHODS:
