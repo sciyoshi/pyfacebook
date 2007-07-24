@@ -242,11 +242,7 @@ class Proxy(object):
         self._name = name
 
     def __call__(self, method, args=None):
-        if not self._client.session_key:
-            raise RuntimeError('Session key not set. Make sure auth.getSession has been called.')
-
-        args['session_key'] = self._client.session_key
-        args['call_id'] = str(int(time.time()) * 1000)
+        self._client._add_session_args(args)
 
         return self._client('%s.%s' % (self._name, method), args)
 
@@ -316,7 +312,10 @@ class AuthProxy(Proxy):
     def getSession(self):
         """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=auth.getSession"""
         args = {}
-        args['auth_token'] = self._client.auth_token
+        try:
+            args['auth_token'] = self._client.auth_token
+        except AttributeError:
+            raise RuntimeError('Client does not have auth_token set.')
         result = self._client('%s.getSession' % self._name, args)
         self._client.session_key = result['session_key']
         self._client.uid = result['uid']
@@ -326,26 +325,26 @@ class AuthProxy(Proxy):
 
     def createToken(self):
         """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=auth.createToken"""
-        result = self._client('%s.createToken' % self._name)
-        self._client.auth_token = result
-        return self._client.auth_token
+        token = self._client('%s.createToken' % self._name)
+        self._client.auth_token = token
+        return token
 
 
-# inherit from ourselves!
 class FriendsProxy(FriendsProxy):
     """Special proxy for facebook.friends."""
 
     def get(self):
+        """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=friends.get"""
         if self._client._friends:
             return self._client._friends
         return super(FriendsProxy, self).get()
 
 
-# inherit from ourselves!
 class PhotosProxy(PhotosProxy):
     """Special proxy for facebook.photos."""
 
-    def upload(self, image, aid=None, caption=None):
+    # Alot of the code in this function is copied from __call__. Can it be refactored?
+    def upload(self, image, aid=None, caption=None, size=None):
         """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=photos.upload"""
         args = {}
 
@@ -355,18 +354,25 @@ class PhotosProxy(PhotosProxy):
         if caption is not None:
             args['caption'] = caption
 
-        args['api_key'] = self._client.api_key
-        args['method'] = 'facebook.photos.upload'
-        args['v'] = '1.0'
+        args = self._client._build_post_args('facebook.photos.upload', self._client._add_session_args(args))
 
-        args['session_key'] = self._client.session_key
-        args['call_id'] = str(int(time.time() * 1000))
+        try:
+            import cStringIO as StringIO
+        except ImportError:
+            import StringIO
 
-        args['format'] = RESPONSE_FORMAT
+        try:
+            import Image
+        except ImportError:
+            data = StringIO.StringIO(open(image, 'rb').read())
+        else:
+            img = Image.open(image)
+            if size:
+                img.thumbnail(size, Image.ANTIALIAS)
+            data = StringIO.StringIO()
+            img.save(data, img.format)
 
-        args['sig'] = self._client._hash_args(args)
-
-        content_type, body = self.__encode_multipart_formdata(list(args.iteritems()), [(image, open(image, 'rb').read())])
+        content_type, body = self.__encode_multipart_formdata(list(args.iteritems()), [(image, data)])
         h = httplib.HTTP('api.facebook.com')
         h.putrequest('POST', '/restserver.php')
         h.putheader('Content-Type', content_type)
@@ -379,25 +385,11 @@ class PhotosProxy(PhotosProxy):
         reply = h.getreply()
 
         if reply[0] != 200:
-            raise Exception('Facebook gave a %s (%s)' % (reply[0], reply[1]))
+            raise Exception('Error uploading photo: Facebook returned HTTP %s (%s)' % (reply[0], reply[1]))
 
         response = h.file.read()
 
-        if RESPONSE_FORMAT == 'JSON':
-            result = simplejson.loads(response)
-
-            self._client._check_error(result)
-        else:
-            dom = minidom.parseString(response)
-            result = self._client._parse_response_item(dom)
-            dom.unlink()
-
-            if 'error_response' in result:
-                self._client._check_error(result['error_response'])
-
-            result = result['photos_upload_response']
-
-        return result
+        return self._client._parse_response(response)
 
 
     def __encode_multipart_formdata(self, fields, files):
@@ -416,7 +408,7 @@ class PhotosProxy(PhotosProxy):
             l.append('Content-Disposition: form-data; filename="%s"' % (str(filename), ))
             l.append('Content-Type: %s' % self.__get_content_type(filename))
             l.append('')
-            l.append(value)
+            l.append(value.getvalue())
         l.append('--' + boundary + '--')
         l.append('')
         body = crlf.join(l)
@@ -442,12 +434,22 @@ class Facebook(object):
         Your API key, as set in the constructor.
 
     app_name
-        Your application's name, i.e. the APP_NAME in apps.facebook.com/APP_NAME/ if
-        this is for an internal web application. Used by some helpers for redirecting.
+        Your application's name, i.e. the APP_NAME in http://apps.facebook.com/APP_NAME/ if
+        this is for an internal web application. Optional, but useful for automatic redirects
+        to canvas pages.
 
     auth_token
         The auth token that Facebook gives you, either with facebook.auth.createToken,
         or through a GET parameter.
+
+    callback
+        The path of the callback set in the Facebook app settings. If your callback is set
+        to http://www.example.com/facebook/callback/, this should be '/facebook/callback/'.
+        Optional, but useful for automatic redirects back to the same page after login.
+
+    desktop
+        True if this is a desktop app, False otherwise. Used for determining how to
+        authenticate.
 
     in_canvas
         True if the current request is for a canvas page.
@@ -459,13 +461,15 @@ class Facebook(object):
         Your application's secret key, as set in the constructor.
 
     session_key
-        The current session key.
+        The current session key. Set automatically by auth.getSession, but can be set
+        manually for doing infinite sessions.
 
     session_key_expires
-        The UNIX time of when this session key expires.
+        The UNIX time of when this session key expires, or 0 if it never expires.
 
     uid
-        After a session is created, you can get the user's UID with this variable.
+        After a session is created, you can get the user's UID with this variable. Set
+        automatically by auth.getSession.
 
     ----------------------------------------------------------------------
 
@@ -483,7 +487,7 @@ class Facebook(object):
         facebook.auth.getSession()  # get a session key
 
         For web apps, if you are passed an auth_token from Facebook, pass that in as a named parameter.
-        Otherwise call:
+        Then call:
 
         facebook.auth.getSession()
 
@@ -561,8 +565,8 @@ class Facebook(object):
             raise FacebookError(response['error_code'], response['error_msg'], response['request_args'])
 
 
-    def __call__(self, method, args=None, secure=False):
-        """Make a call to Facebook's REST server."""
+    def _build_post_args(self, method, args=None):
+        """Adds to args parameters that are necessary for every call to the API."""
         if args is None:
             args = {}
 
@@ -576,18 +580,33 @@ class Facebook(object):
         args['format'] = RESPONSE_FORMAT
         args['sig'] = self._hash_args(args)
 
-        post_data = urllib.urlencode(args)
+        return args
 
-        if secure:
-            response = urllib2.urlopen(FACEBOOK_SECURE_URL, urllib.urlencode(args)).read()
-        else:
-            response = urllib2.urlopen(FACEBOOK_URL, urllib.urlencode(args)).read()
 
-        if RESPONSE_FORMAT == 'JSON':
+    def _add_session_args(self, args=None):
+        """Adds 'session_key' and 'call_id' to args, which are used for API calls that need sessions."""
+        if args is None:
+            args = {}
+
+        if not self.session_key:
+            raise RuntimeError('Session key not set. Make sure auth.getSession has been called.')
+
+        args['session_key'] = self.session_key
+        args['call_id'] = str(int(time.time()) * 1000)
+
+        return args
+
+
+    def _parse_response(self, response, format=None):
+        """Parses the response according to the given (optional) format, which should be either 'JSON' or 'XML'."""
+        if not format:
+            format = RESPONSE_FORMAT
+
+        if format == 'JSON':
             result = simplejson.loads(response)
 
             self._check_error(result)
-        else:
+        elif format == 'XML':
             dom = minidom.parseString(response)
             result = self._parse_response_item(dom)
             dom.unlink()
@@ -596,8 +615,22 @@ class Facebook(object):
                 self._check_error(result['error_response'])
 
             result = result[method[9:].replace('.', '_') + '_response']
+        else:
+            raise RuntimeError('Invalid format specified.')
 
         return result
+
+
+    def __call__(self, method, args=None, secure=False):
+        """Make a call to Facebook's REST server."""
+        post_data = urllib.urlencode(self._build_post_args(method, args))
+
+        if secure:
+            response = urllib2.urlopen(FACEBOOK_SECURE_URL, post_data).read()
+        else:
+            response = urllib2.urlopen(FACEBOOK_URL, post_data).read()
+
+        return self._parse_response(response)
 
 
     # URL helpers
