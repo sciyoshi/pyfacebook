@@ -110,6 +110,8 @@ METHODS = {
     },
 
     'notifications': {
+        'get': [],
+
         'send': [
             ('to_ids', list, []),
             ('notification', str, []),
@@ -442,7 +444,7 @@ class Facebook(object):
         The auth token that Facebook gives you, either with facebook.auth.createToken,
         or through a GET parameter.
 
-    callback
+    callback_path
         The path of the callback set in the Facebook app settings. If your callback is set
         to http://www.example.com/facebook/callback/, this should be '/facebook/callback/'.
         Optional, but useful for automatic redirects back to the same page after login.
@@ -475,7 +477,7 @@ class Facebook(object):
 
     """
 
-    def __init__(self, api_key, secret_key, auth_token=None, app_name=None):
+    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None):
         """
         Initializes a new Facebook object which provides wrappers for the Facebook API.
 
@@ -502,6 +504,7 @@ class Facebook(object):
         self.in_canvas = False
         self.added = False
         self.app_name = app_name
+        self.callback_path = callback_path
         self._friends = None
 
         for namespace in METHODS:
@@ -643,6 +646,19 @@ class Facebook(object):
         return 'http://www.facebook.com/%s.php?%s' % (page, urllib.urlencode(args))
 
 
+    def get_add_url(self, next=None):
+        """
+        Returns the URL that the user should be redirected to in order to add the application.
+
+        """
+        args = {'api_key': self.api_key, 'v': '1.0'}
+
+        if next is not None:
+            args['next'] = next
+
+        return self.get_url('install', args)
+
+
     def get_login_url(self, next=None, popup=False):
         """
         Returns the URL that the user should be redirected to in order to login.
@@ -661,7 +677,7 @@ class Facebook(object):
         if self.auth_token is not None:
             args['auth_token'] = self.auth_token
 
-        return 'http://www.facebook.com/login.php?%s' % urllib.urlencode(args)
+        return self.get_url('login', args)
 
 
     def login(self, popup=False):

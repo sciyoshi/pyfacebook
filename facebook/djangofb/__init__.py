@@ -82,7 +82,9 @@ def require_login(next='', internal=True):
 
 
 def require_add(next=''):
-    pass
+    def decorator(view):
+        return require_login(next)(view)
+    return decorator
 
 
 class FacebookMiddleware(object):
@@ -93,13 +95,14 @@ class FacebookMiddleware(object):
 
     """
 
-    def __init__(self, api_key=None, secret_key=None, app_name=None):
+    def __init__(self, api_key=None, secret_key=None, app_name=None, callback_path=None):
         self.api_key = api_key or settings.FACEBOOK_API_KEY
         self.secret_key = secret_key or settings.FACEBOOK_SECRET_KEY
         self.app_name = app_name or getattr(settings, 'FACEBOOK_APP_NAME', None)
+        self.callback_path = callback_path or getattr(settings, 'FACEBOOK_CALLBACK_PATH', None)
 
     def process_request(self, request):
-        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name)
+        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=self.callback_path)
 
 
 if __name__ == '__main__':
