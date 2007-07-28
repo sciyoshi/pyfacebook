@@ -71,8 +71,8 @@ def require_login(next='', internal=True):
             if result:
                 return result
 
-            if internal and request.method == 'GET' and self.app_name:
-                return request.facebook.redirect('%s%s' % (self.get_app_url(), next))
+            if internal and request.method == 'GET' and fb.app_name:
+                return request.facebook.redirect('%s%s' % (fb.get_app_url(), next))
 
             return view(request, *args, **kwargs)
         newview.next = next
