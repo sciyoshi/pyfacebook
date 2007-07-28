@@ -659,7 +659,7 @@ class Facebook(object):
         if next is not None:
             args['next'] = next
 
-        return self.get_url('install', args)
+        return self.get_url('install', **args)
 
 
     def get_login_url(self, next=None, popup=False):
@@ -680,7 +680,7 @@ class Facebook(object):
         if self.auth_token is not None:
             args['auth_token'] = self.auth_token
 
-        return self.get_url('login', args)
+        return self.get_url('login', **args)
 
 
     def login(self, popup=False):
