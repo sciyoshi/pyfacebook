@@ -108,112 +108,6 @@ class FacebookMiddleware(object):
 if __name__ == '__main__':
     import sys, os
 
-    DEFAULT_MODELS_PY = '''\
-from django.db import models
-
-# get_facebook_client lets us get the current Facebook object
-# from outside of a view, which lets us have cleaner code
-from facebook.djangofb import get_facebook_client
-
-class UserManager(models.Manager):
-    """Custom manager for a Facebook User."""
-    
-    def get_current(self):
-        """Gets a User object for the logged-in Facebook user."""
-        facebook = get_facebook_client()
-        user, created = self.get_or_create(id=int(facebook.uid))
-        if created:
-            # we could do some custom actions for new users here...
-            pass
-        return user
-
-class User(models.Model):
-    """A simple User model for Facebook users."""
-
-    # We use the user's UID as the primary key in our database.
-    id = models.IntegerField(primary_key=True)
-
-    # TODO: The data that you want to store for each user would go here.
-    # For this sample, we let users let people know their favorite progamming
-    # language, in the spirit of Extended Info.
-    language = models.CharField(maxlength=64, default='Python')
-
-    # Add the custom manager
-    objects = UserManager()
-'''
-
-    DEFAULT_VIEWS_PY = '''\
-from django.http import HttpResponse
-from django.views.generic.simple import direct_to_template
-
-# Import the Django helpers
-import facebook.djangofb as facebook
-
-# The User model defined in models.py
-from models import User
-
-# We store our apps' canvas page URL here, so that
-# we can redirect to it if somebody tries to access
-# our pages directly. If you are writing an external
-# Facebook app, you wouldn't need this.
-app_url = 'http://apps.facebook.com/canvaspage/'
-
-# We'll require login for our canvas page. This
-# isn't necessarily a good idea, as we might want
-# to let users see the page without granting our app
-# access to their info. See the wiki for details on how
-# to do this.
-@facebook.require_login()
-def canvas(request):
-    # For internal apps, we'd rather not have users see our
-    # pages from outside Facebook. We check if the request
-    # is a GET, and if it is, redirect to the appropriate page.
-    # (This is pretty ugly to have to do in every view, and
-    # may be pulled into a helper function.)
-    if request.method == 'GET':
-        return request.facebook.redirect(app_url)
-
-    # Get the User object for the currently logged in user
-    user = User.objects.get_current()
-
-    # Check if we were POSTed the user's new language of choice
-    if 'language' in request.POST:
-        user.language = request.POST['language'][:64]
-        user.save()
-
-    # User is guaranteed to be logged in, so pass canvas.fbml
-    # an extra 'fbuser' parameter that is the User object for
-    # the currently logged in user.
-    return direct_to_template(request, 'canvas.fbml', extra_context={'fbuser': user})
-'''
-
-    DEFAULT_URLS_PY = '''\
-from django.conf.urls.defaults import *
-
-urlpatterns = patterns('%s.%s.views',
-    (r'^$', 'canvas'),
-    # Define other pages you want to create here
-)
-'''
-
-    DEFAULT_CANVAS_FBML = '''\
-<div style="padding: 20px;">
-  {% comment %}
-    We can use {{ fbuser }} to get at the current user.
-    {{ fbuser.id }} will be the user's UID, and {{ fbuser.language }}
-    is his/her favorite language (Python :-).
-  {% endcomment %}
-  <h3>Hello, <fb:name uid="{{ fbuser.id }}" firstnameonly="true" useyou="false" />!</h3>
-
-  Your favorite language is {{ fbuser.language|escape }}.
-
-  <form action="." method="POST">
-    <input type="text" name="language" value="{{ fbuser.language|escape }}" />
-    <input type="submit" value="Change" />
-  </form>
-</div>
-'''
-
     def usage():
         sys.stderr.write('Usage: djangofb.py startapp <appname>')
         sys.exit(1)
@@ -256,33 +150,30 @@ urlpatterns = patterns('%s.%s.views',
     except OSError, e:
         sys.stderr.write(management.style.ERROR("Error: %s\n" % e))
         sys.exit(1)
-    
+
+    import facebook
+
+    template_dir = os.path.join(facebook.__path__[0], 'djangofb', 'default_app')
+
     sys.stderr.write('Creating Facebook application %r...\n' % app_name)
-    p = os.path.join(top_dir, '__init__.py')
-    sys.stderr.write('Writing %s...\n' % p)
-    f = open(p, 'w')
-    f.close()
-    p = os.path.join(top_dir, 'views.py')
-    sys.stderr.write('Writing %s...\n' % p)
-    f = open(p, 'w')
-    f.write(DEFAULT_VIEWS_PY)
-    f.close()
-    p = os.path.join(top_dir, 'models.py')
-    sys.stderr.write('Writing %s...\n' % p)
-    f = open(p, 'w')
-    f.write(DEFAULT_MODELS_PY)
-    f.close()
-    p = os.path.join(top_dir, 'urls.py')
-    sys.stderr.write('Writing %s...\n' % p)
-    f = open(p, 'w')
-    f.write(DEFAULT_URLS_PY % (project_name, app_name))
-    f.close()
-    os.mkdir(os.path.join(top_dir, 'templates'))
-    p = os.path.join(top_dir, 'templates', 'canvas.fbml')
-    sys.stderr.write('Writing %s...\n' % p)
-    f = open(p, 'w')
-    f.write(DEFAULT_CANVAS_FBML)
-    f.close()
+    
+    for d, subdirs, files in os.walk(template_dir):
+        relative_dir = d[len(template_dir) + 1:]
+        if relative_dir:
+            os.mkdir(os.path.join(top_dir, relative_dir))
+        subdirs[:] = [s for s in subdirs if s.startswith('.')]
+        for f in files:
+            if f.endswith('.pyc'):
+                continue
+            path_old = os.path.join(d, f)
+            path_new = os.path.join(top_dir, relative_dir, f)
+            f_old = open(path_old, 'r')
+            f_new = open(path_new, 'w')
+            sys.stderr.write('Writing %s...\n' % path_new)
+            f_new.write(f_old.read().replace('{{ project }}', project_name).replace('{{ app }}', app_name))
+            f_new.close()
+            f_old.close()
+
     sys.stderr.write('Done!\n\n')
     
     from django.conf import settings
