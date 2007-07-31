@@ -41,7 +41,7 @@ def get_facebook_client():
         raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
 
-def require_login(next='', internal=True):
+def require_login(next=None, internal=True):
     """
     Decorator for Django views that requires the user to be logged in.
     The FacebookMiddleware must be installed.
@@ -65,6 +65,10 @@ def require_login(next='', internal=True):
                 next = next(request.path)
             elif isinstance(next, int):
                 next = '/'.join(request.path.split('/')[next + 1:])
+            elif next is None and fb.callback_path and request.path.startswith(fb.callback_path):
+                next = request.path[len(fb.callback_path):]
+            else:
+                next = ''
 
             result = fb.check_session(request, next)
 
@@ -161,7 +165,7 @@ if __name__ == '__main__':
         relative_dir = d[len(template_dir) + 1:]
         if relative_dir:
             os.mkdir(os.path.join(top_dir, relative_dir))
-        subdirs[:] = [s for s in subdirs if s.startswith('.')]
+        subdirs[:] = [s for s in subdirs if not s.startswith('.')]
         for f in files:
             if f.endswith('.pyc'):
                 continue
