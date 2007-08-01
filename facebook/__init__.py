@@ -717,7 +717,7 @@ class Facebook(object):
 
                 try:
                     self.auth.getSession()
-                except Exception, e:
+                except FacebookError, e:
                     self.auth_token = None
                     return self.redirect(self.get_login_url(next=next))
                 return
