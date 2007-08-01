@@ -394,7 +394,7 @@ class PhotosProxy(PhotosProxy):
 
         response = h.file.read()
 
-        return self._client._parse_response(response)
+        return self._client._parse_response(response, 'facebook.photos.upload')
 
 
     def __encode_multipart_formdata(self, fields, files):
@@ -603,7 +603,7 @@ class Facebook(object):
         return args
 
 
-    def _parse_response(self, response, format=None):
+    def _parse_response(self, response, method, format=None):
         """Parses the response according to the given (optional) format, which should be either 'JSON' or 'XML'."""
         if not format:
             format = RESPONSE_FORMAT
@@ -636,7 +636,7 @@ class Facebook(object):
         else:
             response = urllib2.urlopen(FACEBOOK_URL, post_data).read()
 
-        return self._parse_response(response)
+        return self._parse_response(response, method)
 
 
     # URL helpers
