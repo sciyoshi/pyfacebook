@@ -4,7 +4,7 @@ if __name__ == '__main__':
     import sys, os
 
     def usage():
-        sys.stderr.write('Usage: djangofb.py startapp <appname>')
+        sys.stderr.write('Usage: djangofb.py startapp <appname>\n')
         sys.exit(1)
 
     if len(sys.argv) not in (2, 3):
@@ -91,4 +91,6 @@ if __name__ == '__main__':
 
     sys.stderr.write("""The final step is to add (r'^%s/', include('%s.%s.urls')) to your urls.py, and then set your callback page in the application settings on Facebook to 'http://your.domain.com/%s/'.
 
-Good luck!""" % (project_name, project_name, app_name, project_name))
+Good luck!
+
+""" % (project_name, project_name, app_name, project_name))
