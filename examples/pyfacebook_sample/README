@@ -1,8 +1,5 @@
 This is a sample Django application for PyFacebook.
 
-The facebook.py file in this directory is exactly the same
-as the one in the root directory.
-
 To use this application, copy the entire folder to an existing
 Django application. Then you need to edit the following settings:
 
@@ -14,12 +11,11 @@ Django application. Then you need to edit the following settings:
   own values.
 
 * In settings.py, add the following line to the variable MIDDLEWARE_CLASSES:
-  'YOUR_PROJECT_NAME.facebook.facebook.FacebookMiddleware', replacing
-  YOUR_PROJECT_NAME with the actual value. This will attach a facebook object
+  'facebook.djangofb.FacebookMiddleware'. This will attach a facebook object
   to every incoming request.
 
 * In urls.py, have something in your urlpatterns like:
-  (r'^facebook/', include('YOUR_PROJECT_NAME.facebook.urls')),
+  (r'^facebook/', include('YOUR_PROJECT_NAME.pyfacebook_sample.urls')),
   This will tell the sample application to live under /facebook/.
 
 * On the Facebook applications page, make sure that you set your callback
