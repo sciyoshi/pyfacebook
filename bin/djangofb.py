@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 if __name__ == '__main__':
-    import sys, os
+    import sys, os, re
 
     def usage():
         sys.stderr.write('Usage: djangofb.py startapp <appname>\n')
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     if app_name == 'facebook':
         sys.stderr.write(management.style.ERROR('Error: You cannot name your app "facebook", since this can cause conflicts with imports in Python < 2.5.\n'))
         sys.exit(1)
-    if not management._is_valid_dir_name(app_name):
+    if not re.search(r'^\w+$', app_name):
         sys.stderr.write(management.style.ERROR('Error: %r is not a valid app name. Please use only numbers, letters and underscores.\n' % (app_name)))
         sys.exit(1)
 
