@@ -23,27 +23,29 @@ if __name__ == '__main__':
         sys.exit(1)
 
     from django.core import management
+    from django.core.management.color import color_style
     
     directory = management.setup_environ(settings)
+    style = color_style()
 
     project_dir = os.path.normpath(os.path.join(directory, '..'))
     parent_dir = os.path.basename(project_dir)
     project_name = os.path.basename(directory)
     if app_name == project_name:
-        sys.stderr.write(management.style.ERROR('Error: You cannot create an app with the same name (%r) as your project.\n' % app_name))
+        sys.stderr.write(style.ERROR('Error: You cannot create an app with the same name (%r) as your project.\n' % app_name))
         sys.exit(1)
     if app_name == 'facebook':
-        sys.stderr.write(management.style.ERROR('Error: You cannot name your app "facebook", since this can cause conflicts with imports in Python < 2.5.\n'))
+        sys.stderr.write(style.ERROR('Error: You cannot name your app "facebook", since this can cause conflicts with imports in Python < 2.5.\n'))
         sys.exit(1)
     if not re.search(r'^\w+$', app_name):
-        sys.stderr.write(management.style.ERROR('Error: %r is not a valid app name. Please use only numbers, letters and underscores.\n' % (app_name)))
+        sys.stderr.write(style.ERROR('Error: %r is not a valid app name. Please use only numbers, letters and underscores.\n' % (app_name)))
         sys.exit(1)
 
     top_dir = os.path.join(directory, app_name)
     try:
         os.mkdir(top_dir)
     except OSError, e:
-        sys.stderr.write(management.style.ERROR("Error: %s\n" % e))
+        sys.stderr.write(style.ERROR("Error: %s\n" % e))
         sys.exit(1)
 
     import facebook
