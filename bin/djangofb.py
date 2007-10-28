@@ -23,10 +23,16 @@ if __name__ == '__main__':
         sys.exit(1)
 
     from django.core import management
-    from django.core.management.color import color_style
-    
+
     directory = management.setup_environ(settings)
-    style = color_style()
+
+    if hasattr(management, 'color'):
+        # Current svn version of django
+        from django.core.management.color import color_style
+        style = color_style()
+    else:
+        # Compatibility with 0.96
+        from django.core.management import style
 
     project_dir = os.path.normpath(os.path.join(directory, '..'))
     parent_dir = os.path.basename(project_dir)
