@@ -37,16 +37,20 @@ import mimetypes
 try:
     import simplejson
     RESPONSE_FORMAT = 'JSON'
-except:
-    print 'NOTE: PyFacebook can use simplejson if it is installed, which'
-    print 'is much faster than XML and also uses less bandwith. Go to'
-    print 'http://undefined.org/python/#simplejson to download it, or do'
-    print 'apt-get install python-simplejson on a Debian-like system.'
-    print ''
-    print 'Falling back to XML...'
+except ImportError:
+    try:
+        from django.utils import simplejson
+        RESPONSE_FORMAT = 'JSON'
+    except ImportError:
+        print 'NOTE: PyFacebook can use simplejson if it is installed, which'
+        print 'is much faster than XML and also uses less bandwith. Go to'
+        print 'http://undefined.org/python/#simplejson to download it, or do'
+        print 'apt-get install python-simplejson on a Debian-like system.'
+        print ''
+        print 'Falling back to XML...'
 
-    from xml.dom import minidom
-    RESPONSE_FORMAT = 'XML'
+        from xml.dom import minidom
+        RESPONSE_FORMAT = 'XML'
 
 __all__ = ['Facebook']
 
@@ -87,6 +91,26 @@ METHODS = {
             ('image_4', str, ['optional']),
             ('image_4_link', str, ['optional']),
             ('priority', int, ['optional']),
+        ],
+
+        'publishTemplatizedAction': [
+            # facebook expects title_data and body_data to be JSON
+            # simplejson.dumps({'place':'Florida'}) would do fine
+            ('actor_id', int, []),
+            ('title_template', str, []),
+            ('title_data', str, ['optional']),
+            ('body_template', str, ['optional']),
+            ('body_data', str, ['optional']),
+            ('body_general', str, ['optional']),
+            ('image_1', str, ['optional']),
+            ('image_1_link', str, ['optional']),
+            ('image_2', str, ['optional']),
+            ('image_2_link', str, ['optional']),
+            ('image_3', str, ['optional']),
+            ('image_3_link', str, ['optional']),
+            ('image_4', str, ['optional']),
+            ('image_4_link', str, ['optional']),
+            ('target_ids', list, ['optional']),
         ],
     },
 

@@ -9,18 +9,16 @@ David B. Edelstein (David.B.Edelstein@gmail.com)
 Max Battcher (max.battcher@gmail.com)
 Rohan Deshpande (rohan.deshpande@gmail.com)
 Matthew Stevens (matthew.stevens@gmail.com)
+Sandro Turriate (sandro.turriate@gmail.com)
 
 http://code.google.com/p/pyfacebook
 
 
 == Usage ==
 
-To use this in your own projects, either do the standard:
+To use this in your own projects, do the standard:
 
 python setup.py install
-
-or copy the facebook.py file into your own source tree and
-use it from there.
 
 
 == Documentation ==
