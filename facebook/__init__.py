@@ -686,7 +686,7 @@ class Facebook(object):
         return self.get_url('install', **args)
 
 
-    def get_login_url(self, next=None, popup=False):
+    def get_login_url(self, next=None, popup=False, canvas=True):
         """
         Returns the URL that the user should be redirected to in order to login.
 
@@ -697,6 +697,9 @@ class Facebook(object):
 
         if next is not None:
             args['next'] = next
+			
+		if canvas is True:
+			args['canvas'] = 1
 
         if popup is True:
             args['popup'] = 1
@@ -758,7 +761,7 @@ class Facebook(object):
             self.session_key = params['session_key']
             self.uid = params['user']
         else:
-            return self.redirect(self.get_url('tos', api_key=self.api_key, v='1.0', next=next))
+            return self.redirect(self.get_url('tos', api_key=self.api_key, v='1.0', next=next, canvas=1))
 
         if params.get('added') == '1':
             self.added = True
