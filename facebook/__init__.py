@@ -698,8 +698,8 @@ class Facebook(object):
         if next is not None:
             args['next'] = next
 			
-		if canvas is True:
-			args['canvas'] = 1
+        if canvas is True:
+            args['canvas'] = 1
 
         if popup is True:
             args['popup'] = 1
