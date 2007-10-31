@@ -603,6 +603,8 @@ class Facebook(object):
         for arg in args.items():
             if type(arg[1]) == list:
                 args[arg[0]] = ','.join(str(a) for a in arg[1])
+            elif type(arg[1]) == unicode:
+                args[arg[0]] = arg[1].encode("UTF-8")
 
         args['method'] = method
         args['api_key'] = self.api_key
