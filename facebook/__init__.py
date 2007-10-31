@@ -772,7 +772,10 @@ class Facebook(object):
             self.session_key_expires = int(params['expires'])
 
         if 'friends' in params:
-            self._friends = params['friends'].split(',')
+            if params['friends']:
+                self._friends = params['friends'].split(',')
+            else:
+                self._friends = []
 
 
     def validate_signature(self, post, prefix='fb_sig', timeout=None):
