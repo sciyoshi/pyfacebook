@@ -46,10 +46,20 @@ def require_login(next=None, internal=True):
     Decorator for Django views that requires the user to be logged in.
     The FacebookMiddleware must be installed.
 
-    @require_login()
-    def some_view(request):
-        ...
+    Standard usage:
+        @require_login()
+        def some_view(request):
+            ...
 
+    Redirecting after login:
+        To use the 'next' parameter to redirect to a specific page after login, a callable should
+        return a path relative to the Post-add URL. 'next' can also be an integer specifying how many
+        parts of request.path to strip to find the relative URL of the canvas page. If 'next' is None,
+        settings.callback_path and settings.app_name are checked to redirect to the same page after logging
+        in. (This is the default behavior.)
+        @require_login(next=some_callable)
+        def some_view(request):
+            ...
     """
     def decorator(view):
         def newview(request, *args, **kwargs):
@@ -70,13 +80,12 @@ def require_login(next=None, internal=True):
             else:
                 next = ''
 
-            result = fb.check_session(request, next)
-
-            if result:
-                return result
+            if not fb.check_session(request):
+                #If user has never logged in before, the get_login_url will redirect to the TOS page
+                return fb.redirect(fb.get_login_url(next=next))
 
             if internal and request.method == 'GET' and fb.app_name:
-                return request.facebook.redirect('%s%s' % (fb.get_app_url(), next))
+                return fb.redirect('%s%s' % (fb.get_app_url(), next))
 
             return view(request, *args, **kwargs)
         newview.next = next
@@ -85,9 +94,68 @@ def require_login(next=None, internal=True):
     return decorator
 
 
-def require_add(next=''):
+def require_add(next=None, on_install=None):
+    """
+    Decorator for Django views that requires application installation.
+    The FacebookMiddleware must be installed.
+    
+    Standard usage:
+        @require_add()
+        def some_view(request):
+            ...
+
+    Redirecting after installation:
+        To use the 'next' parameter to redirect to a specific page after login, a callable should
+        return a path relative to the Post-add URL. 'next' can also be an integer specifying how many
+        parts of request.path to strip to find the relative URL of the canvas page. If 'next' is None,
+        settings.callback_path and settings.app_name are checked to redirect to the same page after logging
+        in. (This is the default behavior.)
+        @require_add(next=some_callable)
+        def some_view(request):
+            ...
+
+    Post-install processing:
+        Set the on_install parameter to a callable in order to handle special post-install processing.
+        The callable should take a request object as the parameter.
+        @require_add(on_install=some_callable)
+        def some_view(request):
+            ...
+    """
     def decorator(view):
-        return require_login(next)(view)
+        def newview(request, *args, **kwargs):
+            next = newview.next
+
+            try:
+                fb = request.facebook
+            except:
+                raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
+
+            if callable(next):
+                next = next(request.path)
+            elif isinstance(next, int):
+                next = '/'.join(request.path.split('/')[next + 1:])
+            elif next is None and fb.callback_path and request.path.startswith(fb.callback_path):
+                next = request.path[len(fb.callback_path):]
+            else:
+                next = ''
+
+            if not fb.check_session(request):
+                if fb.added:
+                    if request.method == 'GET' and fb.app_name:
+                        return fb.redirect('%s%s' % (fb.get_app_url(), next))
+                    return fb.redirect(fb.get_login_url(next=next))
+                else:
+                    return fb.redirect(fb.get_add_url(next=next))
+
+            if not fb.added:
+                return fb.redirect(fb.get_add_url(next=next))
+
+            if 'installed' in request.GET and callable(on_install):
+                on_install(request)
+
+            return view(request, *args, **kwargs)
+        newview.next = next
+        return newview
     return decorator
 
 

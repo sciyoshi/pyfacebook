@@ -133,6 +133,7 @@ METHODS = {
         'getAppUsers': [],
     },
 
+    # notifications methods
     'notifications': {
         'get': [],
 
@@ -160,7 +161,7 @@ METHODS = {
 
         'getFBML': [
             ('uid', int, ['optional']),
-        ]
+        ],
     },
 
     # users methods
@@ -173,6 +174,15 @@ METHODS = {
         'getLoggedInUser': [],
 
         'isAppAdded': [],
+
+        'hasAppPermission': [
+            ('ext_perm', str, []),
+        ],
+
+        'setStatus': [
+            ('status', str, []),
+            ('clear', bool, []),
+        ],
     },
 
     # events methods
@@ -205,7 +215,59 @@ METHODS = {
         ],
 
         'getMembers': [
-            ('gid', int, [])
+            ('gid', int, []),
+        ],
+    },
+
+    # marketplace methods
+    'marketplace': {
+        'createListing': [
+            ('listing_id', int, []),
+            ('show_on_profile', bool, []),
+            ('listing_attrs', str, []),
+        ],
+
+        'getCategories': [],
+
+        'getListings': [
+            ('listing_ids', list, []),
+            ('uids', list, []),
+        ],
+
+        'getSubCategories': [
+            ('category', str, []),
+        ],
+
+        'removeListing': [
+            ('listing_id', int, []),
+            ('status', str, []),
+        ],
+
+        'search': [
+            ('category', str, ['optional']),
+            ('subcategory', str, ['optional']),
+            ('query', str, ['optional']),
+        ],
+    },
+
+    # pages methods
+    'pages': {
+        'getInfo': [
+            ('page_ids', list, ['optional']),
+            ('uid', int, ['optional']),
+        ],
+
+        'isAdmin': [
+            ('page_id', int, []),
+        ],
+
+        'isAppAdded': [
+            ('page_id', int, []),
+        ],
+
+        'isFan': [
+            ('page_id', int, []),
+            ('uid', int, []),
         ],
     },
 
@@ -727,13 +789,13 @@ class Facebook(object):
         raise NotImplementedError('redirect() must be implemented in subclasses.')
 
 
-    def check_session(self, request, next=''):
+    def check_session(self, request):
         """
         Checks the given Django HttpRequest for Facebook parameters such as
-        POST variables or an auth token. If the session is valid, returns None
+        POST variables or an auth token. If the session is valid, returns True
         and this object can now be used to access the Facebook API. Otherwise,
-        it returns an HttpResponse which either asks the user to log in or grant
-        access permissions to this application.
+        it returns False, and the application should take the appropriate action
+        (either log the user in or have him add the application).
 
         """
         self.in_canvas = (request.POST.get('fb_sig_in_canvas') == '1')
@@ -748,22 +810,16 @@ class Facebook(object):
                     self.auth.getSession()
                 except FacebookError, e:
                     self.auth_token = None
-                    return self.redirect(self.get_login_url(next=next))
+                    return False
                 return
 
             params = self.validate_signature(request.GET)
 
         if not params:
-            return self.redirect(self.get_login_url(next=next))
+            return False
 
         if params.get('in_canvas') == '1':
             self.in_canvas = True
-
-        if 'session_key' in params and 'user' in params:
-            self.session_key = params['session_key']
-            self.uid = params['user']
-        else:
-            return self.redirect(self.get_url('tos', api_key=self.api_key, v='1.0', next=next, canvas=1))
 
         if params.get('added') == '1':
             self.added = True
@@ -776,6 +832,14 @@ class Facebook(object):
                 self._friends = params['friends'].split(',')
             else:
                 self._friends = []
+
+        if 'session_key' in params and 'user' in params:
+            self.session_key = params['session_key']
+            self.uid = params['user']
+        else:
+            return False
+
+        return True
 
 
     def validate_signature(self, post, prefix='fb_sig', timeout=None):
