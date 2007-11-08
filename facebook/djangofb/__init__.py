@@ -153,6 +153,9 @@ def require_add(next=None, on_install=None):
             if 'installed' in request.GET and callable(on_install):
                 on_install(request)
 
+            if internal and request.method == 'GET' and fb.app_name:
+                return fb.redirect('%s%s' % (fb.get_app_url(), next))
+
             return view(request, *args, **kwargs)
         newview.next = next
         return newview

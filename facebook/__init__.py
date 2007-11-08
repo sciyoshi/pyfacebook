@@ -811,7 +811,11 @@ class Facebook(object):
                 except FacebookError, e:
                     self.auth_token = None
                     return False
-                return
+
+                if 'installed' in request.GET:
+                    self.added = True
+
+                return True
 
             params = self.validate_signature(request.GET)
 
