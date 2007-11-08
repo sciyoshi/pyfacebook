@@ -181,9 +181,10 @@ class FacebookMiddleware(object):
         _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=self.callback_path)
         if not self.internal and 'facebook_session_key' in request.session and 'facebook_user_id' in request.session:
             request.facebook.session_key = request.session['facebook_session_key']
-            request.facebook.user_id = request.session['facebook_user_id']
+            request.facebook.uid = request.session['facebook_user_id']
 
     def process_response(self, request, response):
-        if not self.internal and request.facebook.session_key and request.facebook.id:
+        if not self.internal and request.facebook.session_key and request.facebook.uid:
             request.session['facebook_session_key'] = request.facebook.session_key
             request.session['facebook_user_id'] = request.facebook.uid
+        return response
