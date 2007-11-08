@@ -545,6 +545,9 @@ class Facebook(object):
     in_canvas
         True if the current request is for a canvas page.
 
+    page_id
+        Set to the page_id of the current page (if any)
+
     secret
         Secret that is used after getSession for desktop apps.
 
@@ -590,6 +593,7 @@ class Facebook(object):
         self.auth_token = auth_token
         self.secret = None
         self.uid = None
+        self.page_id = None
         self.in_canvas = False
         self.added = False
         self.app_name = app_name
@@ -780,15 +784,6 @@ class Facebook(object):
         webbrowser.open(self.get_login_url(popup=popup))
 
 
-    def redirect(self, url):
-        """
-        Redirects to the given URL, depending on if a request is in the
-        canvas. Must be implemented in subclasses.
-
-        """
-        raise NotImplementedError('redirect() must be implemented in subclasses.')
-
-
     def check_session(self, request):
         """
         Checks the given Django HttpRequest for Facebook parameters such as
@@ -800,9 +795,20 @@ class Facebook(object):
         """
         self.in_canvas = (request.POST.get('fb_sig_in_canvas') == '1')
 
+        if 'session_key' in request.session and 'uid' in request.session:
+            self.session_key = request.session['session_key']
+            self.uid = request.session['uid']
+            return True
+
         if request.method == 'POST':
             params = self.validate_signature(request.POST)
         else:
+            if 'installed' in request.GET:
+                self.added = True
+
+            if 'fb_page_id' in request.GET:
+                self.page_id = request.GET['fb_page_id']
+
             if 'auth_token' in request.GET:
                 self.auth_token = request.GET['auth_token']
 
@@ -811,9 +817,6 @@ class Facebook(object):
                 except FacebookError, e:
                     self.auth_token = None
                     return False
-
-                if 'installed' in request.GET:
-                    self.added = True
 
                 return True
 
@@ -837,9 +840,14 @@ class Facebook(object):
             else:
                 self._friends = []
 
-        if 'session_key' in params and 'user' in params:
+        if 'session_key' in params:
             self.session_key = params['session_key']
-            self.uid = params['user']
+            if 'user' in params:
+                self.uid = params['user']
+            elif 'page_id' in params:
+                self.page_id = params['page_id']
+            else:
+                return False
         else:
             return False
 
