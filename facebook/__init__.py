@@ -754,6 +754,22 @@ class Facebook(object):
         return self.get_url('install', **args)
 
 
+    def get_authorize_url(self, next=None, next_cancel=None):
+        """
+        Returns the URL that the user should be redirected to in order to add the application.
+
+        """
+        args = {'api_key': self.api_key, 'v': '1.0'}
+
+        if next is not None:
+            args['next'] = next
+
+        if next_cancel is not None:
+            args['next_cancel'] = next_cancel
+
+        return self.get_url('authorize', **args)
+
+
     def get_login_url(self, next=None, popup=False, canvas=True):
         """
         Returns the URL that the user should be redirected to in order to login.
@@ -795,9 +811,7 @@ class Facebook(object):
         """
         self.in_canvas = (request.POST.get('fb_sig_in_canvas') == '1')
 
-        if 'session_key' in request.session and 'uid' in request.session:
-            self.session_key = request.session['session_key']
-            self.uid = request.session['uid']
+        if self.session_key and (self.uid or self.page_id):
             return True
 
         if request.method == 'POST':
