@@ -170,7 +170,7 @@ class FacebookMiddleware(object):
 
     """
 
-    def __init__(self, api_key=None, secret_key=None, app_name=None, callback_path=None, internal=True):
+    def __init__(self, api_key=None, secret_key=None, app_name=None, callback_path=None, internal=None):
         self.api_key = api_key or settings.FACEBOOK_API_KEY
         self.secret_key = secret_key or settings.FACEBOOK_SECRET_KEY
         self.app_name = app_name or getattr(settings, 'FACEBOOK_APP_NAME', None)
