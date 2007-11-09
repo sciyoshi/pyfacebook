@@ -65,13 +65,14 @@ def require_login(next=None, internal=None):
         def newview(request, *args, **kwargs):
             next = newview.next
             internal = newview.internal
-            if internal is None:
-                internal = request.facebook.internal
 
             try:
                 fb = request.facebook
             except:
                 raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
+
+            if internal is None:
+                internal = request.facebook.internal
 
             if callable(next):
                 next = next(request.path)
@@ -127,13 +128,14 @@ def require_add(next=None, internal=None, on_install=None):
         def newview(request, *args, **kwargs):
             next = newview.next
             internal = newview.internal
-            if internal is None:
-                internal = request.facebook.internal
 
             try:
                 fb = request.facebook
             except:
                 raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
+
+            if internal is None:
+                internal = request.facebook.internal
 
             if callable(next):
                 next = next(request.path)
