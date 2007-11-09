@@ -66,7 +66,7 @@ def require_login(next=None, internal=None):
             next = newview.next
             internal = newview.internal
             if internal is None:
-                internal = request.internal
+                internal = request.facebook.internal
 
             try:
                 fb = request.facebook
@@ -128,7 +128,7 @@ def require_add(next=None, internal=None, on_install=None):
             next = newview.next
             internal = newview.internal
             if internal is None:
-                internal = request.internal
+                internal = request.facebook.internal
 
             try:
                 fb = request.facebook
@@ -163,6 +163,7 @@ def require_add(next=None, internal=None, on_install=None):
 
             return view(request, *args, **kwargs)
         newview.next = next
+        newview.internal = internal
         return newview
     return decorator
 
@@ -183,7 +184,7 @@ class FacebookMiddleware(object):
         self.internal = internal or getattr(settings, 'FACEBOOK_INTERNAL', True)
 
     def process_request(self, request):
-        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=self.callback_path)
+        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=self.callback_path, internal=self.internal)
         if not self.internal and 'facebook_session_key' in request.session and 'facebook_user_id' in request.session:
             request.facebook.session_key = request.session['facebook_session_key']
             request.facebook.uid = request.session['facebook_user_id']

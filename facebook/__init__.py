@@ -545,6 +545,9 @@ class Facebook(object):
     in_canvas
         True if the current request is for a canvas page.
 
+    internal
+        True if this Facebook object is for an internal application (one that can be added on Facebook)
+
     page_id
         Set to the page_id of the current page (if any)
 
@@ -569,7 +572,7 @@ class Facebook(object):
 
     """
 
-    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None):
+    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None, internal=None):
         """
         Initializes a new Facebook object which provides wrappers for the Facebook API.
 
@@ -598,6 +601,7 @@ class Facebook(object):
         self.added = False
         self.app_name = app_name
         self.callback_path = callback_path
+        self.internal = internal
         self._friends = None
 
         for namespace in METHODS:
