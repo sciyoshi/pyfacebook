@@ -41,7 +41,7 @@ def get_facebook_client():
         raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
 
-def require_login(next=None, internal=True):
+def require_login(next=None, internal=None):
     """
     Decorator for Django views that requires the user to be logged in.
     The FacebookMiddleware must be installed.
@@ -65,6 +65,8 @@ def require_login(next=None, internal=True):
         def newview(request, *args, **kwargs):
             next = newview.next
             internal = newview.internal
+            if internal is None:
+                internal = request.internal
 
             try:
                 fb = request.facebook
@@ -94,7 +96,7 @@ def require_login(next=None, internal=True):
     return decorator
 
 
-def require_add(next=None, on_install=None):
+def require_add(next=None, internal=None, on_install=None):
     """
     Decorator for Django views that requires application installation.
     The FacebookMiddleware must be installed.
@@ -124,6 +126,9 @@ def require_add(next=None, on_install=None):
     def decorator(view):
         def newview(request, *args, **kwargs):
             next = newview.next
+            internal = newview.internal
+            if internal is None:
+                internal = request.internal
 
             try:
                 fb = request.facebook
