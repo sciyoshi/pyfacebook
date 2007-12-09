@@ -150,6 +150,13 @@ METHODS = {
             ('image', str, []),
             ('invite', bool, []),
         ],
+
+        'sendEmail': [
+            ('recipients', list, []),
+            ('subject', str, []),
+            ('text', str, ['optional']),
+            ('fbml', str, ['optional']),
+        ]
     },
 
     # profile methods
@@ -614,7 +621,7 @@ class Facebook(object):
         """Hashes arguments by joining key=value pairs, appending a secret, and then taking the MD5 hex digest."""
         hasher = md5.new(''.join(['%s=%s' % (x, args[x]) for x in sorted(args.keys())]))
         if secret:
-            hasher.updated(secret)
+            hasher.update(secret)
         elif self.secret:
             hasher.update(self.secret)
         else:
@@ -694,7 +701,7 @@ class Facebook(object):
             raise RuntimeError('Session key not set. Make sure auth.getSession has been called.')
 
         args['session_key'] = self.session_key
-        args['call_id'] = str(int(time.time()) * 1000)
+        args['call_id'] = str(int(time.time() * 1000))
 
         return args
 
