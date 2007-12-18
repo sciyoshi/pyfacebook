@@ -162,8 +162,10 @@ METHODS = {
     # profile methods
     'profile': {
         'setFBML': [
-            ('markup', str, []),
             ('uid', int, ['optional']),
+            ('profile', str, ['optional']),
+            ('profile_aciton', str, ['optional']),
+            ('mobile_fbml', str, ['optional]),
         ],
 
         'getFBML': [
