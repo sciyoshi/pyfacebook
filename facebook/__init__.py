@@ -164,7 +164,7 @@ METHODS = {
         'setFBML': [
             ('uid', int, ['optional']),
             ('profile', str, ['optional']),
-            ('profile_aciton', str, ['optional']),
+            ('profile_action', str, ['optional']),
             ('mobile_fbml', str, ['optional']),
         ],
 
