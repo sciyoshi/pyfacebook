@@ -14,10 +14,6 @@ except ImportError:
 _thread_locals = local()
 
 class Facebook(facebook.Facebook):
-    def get_app_url(self, path=''):
-        """Get the URL for this app's canvas page, according to app_name."""
-        return 'http://apps.facebook.com/%s/%s' % (self.app_name, path)
-
     def redirect(self, url):
         """
         Helper for Django which redirects to another page. If inside a

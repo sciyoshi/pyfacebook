@@ -338,8 +338,9 @@ class Proxy(object):
         self._client = client
         self._name = name
 
-    def __call__(self, method, args=None):
-        self._client._add_session_args(args)
+    def __call__(self, method, args=None, add_session_args=True):
+        if add_session_args:
+            self._client._add_session_args(args)
 
         return self._client('%s.%s' % (self._name, method), args)
 
@@ -752,6 +753,14 @@ class Facebook(object):
 
         """
         return 'http://www.facebook.com/%s.php?%s' % (page, urllib.urlencode(args))
+
+
+    def get_app_url(self, path=''):
+        """
+        Returns the URL for this app's canvas page, according to app_name.
+        
+        """
+        return 'http://apps.facebook.com/%s/%s' % (self.app_name, path)
 
 
     def get_add_url(self, next=None):
