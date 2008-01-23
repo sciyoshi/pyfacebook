@@ -23,7 +23,7 @@ def post(request):
 
 @facebook.require_login()
 def post_add(request):
-    request.facebook.profile.setFBML('Congratulations on adding PyFaceBook. Please click on the PyFaceBook link on the left side to change this text.', request.facebook.uid)
+    request.facebook.profile.setFBML(request.facebook.uid, 'Congratulations on adding PyFaceBook. Please click on the PyFaceBook link on the left side to change this text.')
 
     return request.facebook.redirect('http://apps.facebook.com/pyfacebook/')
 
