@@ -159,7 +159,7 @@ METHODS = {
     # profile methods
     'profile': {
         'setFBML': [
-            ('markup', int, ['optional']),
+            ('markup', str, ['optional']),
             ('uid', int, ['optional']),
             ('profile', str, ['optional']),
             ('profile_action', str, ['optional']),
