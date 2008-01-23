@@ -54,6 +54,8 @@ VERSION = '0.1'
 FACEBOOK_URL = 'http://api.facebook.com/restserver.php'
 FACEBOOK_SECURE_URL = 'https://api.facebook.com/restserver.php'
 
+class json(object): pass
+
 # simple IDL for the Facebook API
 METHODS = {
     # feed methods
@@ -89,7 +91,9 @@ METHODS = {
         'publishTemplatizedAction': [
             # facebook expects title_data and body_data to be JSON
             # simplejson.dumps({'place':'Florida'}) would do fine
+            # actor_id is now deprecated, use page_actor_id instead
             ('actor_id', int, []),
+            ('page_actor_id', int, []),
             ('title_template', str, []),
             ('title_data', str, ['optional']),
             ('body_template', str, ['optional']),
@@ -155,6 +159,7 @@ METHODS = {
     # profile methods
     'profile': {
         'setFBML': [
+            ('markup', int, ['optional']),
             ('uid', int, ['optional']),
             ('profile', str, ['optional']),
             ('profile_action', str, ['optional']),
@@ -319,6 +324,21 @@ METHODS = {
         'setRefHandle': [
             ('handle', str, []),
             ('fbml', str, []),
+        ],
+    },
+
+    'data': {
+        'getCookies': [
+            ('uid', int, []),
+            ('string', str, []),
+        ],
+
+        'setCookie': [
+            ('uid', int, []),
+            ('name', str, []),
+            ('value', str, []),
+            ('expires', int, ['optional']),
+            ('path', str, ['optional']),
         ],
     },
 }
