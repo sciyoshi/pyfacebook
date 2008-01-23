@@ -791,7 +791,7 @@ class Facebook(object):
 
     def get_authorize_url(self, next=None, next_cancel=None):
         """
-        Returns the URL that the user should be redirected to in order to add the application.
+        Returns the URL that the user should be redirected to in order to authorize certain actions for application.
 
         """
         args = {'api_key': self.api_key, 'v': '1.0'}

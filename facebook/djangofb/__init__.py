@@ -1,5 +1,3 @@
-__all__ = ['Facebook', 'FacebookMiddleware', 'get_facebook_client', 'require_login']
-
 import facebook
 
 from django.http import HttpResponse, HttpResponseRedirect
@@ -10,6 +8,8 @@ try:
     from threading import local
 except ImportError:
     from django.utils._threading_local import local
+
+__all__ = ['Facebook', 'FacebookMiddleware', 'get_facebook_client', 'require_login', 'require_add']
 
 _thread_locals = local()
 
@@ -76,7 +76,7 @@ def require_login(next=None, internal=None):
                 next = '/'.join(request.path.split('/')[next + 1:])
             elif next is None and fb.callback_path and request.path.startswith(fb.callback_path):
                 next = request.path[len(fb.callback_path):]
-            else:
+            elif not isinstance(next, str):
                 next = ''
 
             if not fb.check_session(request):
@@ -165,6 +165,14 @@ def require_add(next=None, internal=None, on_install=None):
         return newview
     return decorator
 
+# try to preserve the argspecs
+try:
+    import decorator
+except ImportError:
+    pass
+else:
+    require_login = lambda f: decorator.new_wrapper(require_login(f), f)
+    require_add = lambda f: decorator.new_wrapper(require_add(f), f)
 
 class FacebookMiddleware(object):
     """
