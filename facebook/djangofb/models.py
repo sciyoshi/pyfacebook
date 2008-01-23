@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
 
 FB_MESSAGE_STATUS = (
     (0, 'Explanation'),
@@ -28,7 +30,7 @@ class Message(models.Model):
         return self.get_status_display().lower()
 
     def as_fbml(self):
-        return u'<fb:%s message="%s" />' % (
+        return mark_safe(u'<fb:%s message="%s" />' % (
             self._fb_tag(),
-            self.message,
-        )
+            escape(self.message),
+        ))
