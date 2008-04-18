@@ -64,6 +64,31 @@ except ImportError:
         from xml.dom import minidom
         RESPONSE_FORMAT = 'XML'
 
+# support Google App Engine.  GAE does not have a working urllib.urlopen.
+try:
+    from google.appengine.api import urlfetch
+
+    def urlread(url, data=None):
+        if data is not None:
+            headers = {"Content-type": "application/x-www-form-urlencoded"}
+            method = urlfetch.POST
+        else:
+            headers = {}
+            method = urlfetch.GET
+
+        result = urlfetch.fetch(url, method=method,
+                                payload=data, headers=headers)
+        
+        if result.status_code == 200:
+            return result.content
+        else:
+            raise urllib2.URLError("fetch error url=%s, code=%d" % (url, result.status_code))
+
+except ImportError:
+    def urlread(url, data=None):
+        res = urllib2.urlopen(url, data=data)
+        return res.read()
+    
 __all__ = ['Facebook']
 
 VERSION = '0.1'
@@ -767,16 +792,17 @@ class Facebook(object):
 
     def __call__(self, method, args=None, secure=False):
         """Make a call to Facebook's REST server."""
+
         post_data = urllib.urlencode(self._build_post_args(method, args))
 
         if secure:
-            response = urllib2.urlopen(FACEBOOK_SECURE_URL, post_data).read()
+            response = urlread(FACEBOOK_SECURE_URL, post_data)
         else:
-            response = urllib2.urlopen(FACEBOOK_URL, post_data).read()
+            response = urlread(FACEBOOK_URL, post_data)
 
         return self._parse_response(response, method)
 
-
+    
     # URL helpers
     def get_url(self, page, **args):
         """
