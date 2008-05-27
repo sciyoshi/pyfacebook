@@ -153,6 +153,25 @@ METHODS = {
             ('image_4_link', str, ['optional']),
             ('target_ids', list, ['optional']),
         ],
+
+        'registerTemplateBundle': [
+            ('one_line_story_template', str, []),
+            ('short_story_template', json, ['optional']),
+            ('full_story_template', json, ['optional']),
+        ],
+
+        'getRegisteredTemplateBundles': [],
+
+        'getRegisteredTemplateBundleByID': [
+            ('template_bundle_id', str, []),
+        ],
+
+        'publishUserAction': [
+            ('template_bundle_id', str, []),
+            ('template_data', json, ['optional']),
+            ('target_ids', list, ['optional']),
+            ('body_general', str, ['optional']),
+        ],
     },
 
     # fql methods
@@ -212,6 +231,26 @@ METHODS = {
 
         'getFBML': [
             ('uid', int, ['optional']),
+        ],
+
+        'setInfo': [
+            ('title', str, []),
+            ('type', int, []),
+            ('info_fields', json, []),
+            ('uid', int, []),
+        ],
+
+        'getInfo': [
+            ('uid', int, []),
+        ],
+
+        'setInfoOptions': [
+            ('field', str, []),
+            ('options', json, []),
+        ],
+
+        'getInfoOptions': [
+            ('field', str, []),
         ],
     },
 
@@ -386,7 +425,6 @@ METHODS = {
         ],
     },
 }
-
 
 class Proxy(object):
     """Represents a "namespace" of Facebook API calls."""
@@ -758,7 +796,9 @@ class Facebook(object):
             args = {}
 
         if not self.session_key:
-            raise RuntimeError('Session key not set. Make sure auth.getSession has been called.')
+            return args
+            #some calls don't need a session anymore. this might be better done in the markup
+            #raise RuntimeError('Session key not set. Make sure auth.getSession has been called.')
 
         args['session_key'] = self.session_key
         args['call_id'] = str(int(time.time() * 1000))
