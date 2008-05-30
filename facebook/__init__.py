@@ -227,6 +227,7 @@ METHODS = {
             ('profile', str, ['optional']),
             ('profile_action', str, ['optional']),
             ('mobile_fbml', str, ['optional']),
+            ('profile_main', str, ['optional']),
         ],
 
         'getFBML': [
