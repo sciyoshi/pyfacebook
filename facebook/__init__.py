@@ -136,9 +136,8 @@ METHODS = {
             # facebook expects title_data and body_data to be JSON
             # simplejson.dumps({'place':'Florida'}) would do fine
             # actor_id is now deprecated, use page_actor_id instead
-            ('actor_id', int, []),
-            ('page_actor_id', int, []),
             ('title_template', str, []),
+            ('page_actor_id', int, ['optional']),
             ('title_data', json, ['optional']),
             ('body_template', str, ['optional']),
             ('body_data', json, ['optional']),
