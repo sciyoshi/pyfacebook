@@ -171,8 +171,15 @@ try:
 except ImportError:
     pass
 else:
-    require_login = lambda f: decorator.new_wrapper(require_login(f), f)
-    require_add = lambda f: decorator.new_wrapper(require_add(f), f)
+    def updater(f):
+        def updated(*args, **kwargs):
+            original = f(*args, **kwargs)
+            def newdecorator(view):
+                return decorator.new_wrapper(original(view), view)
+            return decorator.new_wrapper(newdecorator, original)
+        return decorator.new_wrapper(updated, f)
+    require_login = updater(require_login)
+    require_add = updater(require_add)
 
 class FacebookMiddleware(object):
     """
