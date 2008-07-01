@@ -187,7 +187,11 @@ METHODS = {
             ('uids2', list, []),
         ],
 
-        'get': [],
+        'get': [
+            ('flid', int, ['optional']),
+        ],
+
+        'getLists': [],
 
         'getAppUsers': [],
     },
@@ -530,11 +534,11 @@ class AuthProxy(Proxy):
 class FriendsProxy(FriendsProxy):
     """Special proxy for facebook.friends."""
 
-    def get(self):
+    def get(self, **kwargs):
         """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=friends.get"""
         if self._client._friends:
             return self._client._friends
-        return super(FriendsProxy, self).get()
+        return super(FriendsProxy, self).get(**kwargs)
 
 
 class PhotosProxy(PhotosProxy):
