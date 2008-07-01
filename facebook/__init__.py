@@ -411,6 +411,20 @@ METHODS = {
         ],
     },
 
+    # SMS Methods
+    'sms' : {
+        'canSend' : [
+            ('uid', int, []),
+        ],
+
+        'send' : [
+            ('uid', int, []),
+            ('message', str, []),
+            ('session_id', int, []),
+            ('req_session', bool, []),
+        ],
+    },
+
     'data': {
         'getCookies': [
             ('uid', int, []),
