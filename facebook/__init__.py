@@ -133,9 +133,6 @@ METHODS = {
         ],
 
         'publishTemplatizedAction': [
-            # facebook expects title_data and body_data to be JSON
-            # simplejson.dumps({'place':'Florida'}) would do fine
-            # actor_id is now deprecated, use page_actor_id instead
             ('title_template', str, []),
             ('page_actor_id', int, ['optional']),
             ('title_data', json, ['optional']),
