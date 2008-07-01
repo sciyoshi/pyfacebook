@@ -139,9 +139,9 @@ METHODS = {
             ('actor_id', int, []),
             ('page_actor_id', int, []),
             ('title_template', str, []),
-            ('title_data', str, ['optional']),
+            ('title_data', json, ['optional']),
             ('body_template', str, ['optional']),
-            ('body_data', str, ['optional']),
+            ('body_data', json, ['optional']),
             ('body_general', str, ['optional']),
             ('image_1', str, ['optional']),
             ('image_1_link', str, ['optional']),
@@ -460,6 +460,10 @@ def __generate_proxies():
                             body.append('if %s is None: %s = %s' % (param_name, param_name, repr(option[1])))
                         else:
                             param = '%s=%s' % (param_name, repr(option[1]))
+
+                if param_type == json:
+                    # we only jsonify the argument if it's a list or a dict, for compatibility
+                    body.append('if isinstance(%s, list) or isinstance(%s, dict): %s = simplejson.dumps(%s)' % ((param_name,) * 4))
 
                 if 'optional' in param_options:
                     param = '%s=None' % param_name
