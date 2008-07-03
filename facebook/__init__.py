@@ -696,7 +696,7 @@ class Facebook(object):
 
     """
 
-    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None, internal=None):
+    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None, internal=None, proxy=None):
         """
         Initializes a new Facebook object which provides wrappers for the Facebook API.
 
@@ -727,6 +727,7 @@ class Facebook(object):
         self.callback_path = callback_path
         self.internal = internal
         self._friends = None
+        self.proxy = proxy
 
         for namespace in METHODS:
             self.__dict__[namespace] = eval('%sProxy(self, \'%s\')' % (namespace.title(), 'facebook.%s' % namespace))
@@ -854,10 +855,18 @@ class Facebook(object):
 
         post_data = urllib.urlencode(self._build_post_args(method, args))
 
-        if secure:
-            response = urlread(FACEBOOK_SECURE_URL, post_data)
+        if self.proxy:
+            proxy_handler = urllib2.ProxyHandler(self.proxy)
+            opener = urllib2.build_opener(proxy_handler)
+            if secure:
+                response = opener.open(FACEBOOK_SECURE_URL, post_data).read() 
+            else:
+                response = opener.open(FACEBOOK_URL, post_data).read()
         else:
-            response = urlread(FACEBOOK_URL, post_data)
+            if secure:
+                response = urlread(FACEBOOK_SECURE_URL, post_data)
+            else:
+                response = urlread(FACEBOOK_URL, post_data)
 
         return self._parse_response(response, method)
 

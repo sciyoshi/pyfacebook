@@ -195,9 +195,12 @@ class FacebookMiddleware(object):
         self.app_name = app_name or getattr(settings, 'FACEBOOK_APP_NAME', None)
         self.callback_path = callback_path or getattr(settings, 'FACEBOOK_CALLBACK_PATH', None)
         self.internal = internal or getattr(settings, 'FACEBOOK_INTERNAL', True)
+        self.proxy = None
+        if settings.USE_HTTP_PROXY:
+            self.proxy = settings.HTTP_PROXY
 
     def process_request(self, request):
-        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=self.callback_path, internal=self.internal)
+        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=self.callback_path, internal=self.internal, proxy=self.proxy)
         if not self.internal and 'facebook_session_key' in request.session and 'facebook_user_id' in request.session:
             request.facebook.session_key = request.session['facebook_session_key']
             request.facebook.uid = request.session['facebook_user_id']
