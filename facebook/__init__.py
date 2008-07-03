@@ -50,6 +50,7 @@ import time
 import urllib
 import urllib2
 import httplib
+import urlparse
 import mimetypes
 
 # try to use simplejson first, otherwise fallback to XML
@@ -588,8 +589,9 @@ class PhotosProxy(PhotosProxy):
             img.save(data, img.format)
 
         content_type, body = self.__encode_multipart_formdata(list(args.iteritems()), [(image, data)])
-        h = httplib.HTTP('api.facebook.com')
-        h.putrequest('POST', '/restserver.php')
+        urlinfo = urlparse.urlsplit(FACEBOOK_URL)
+        h = httplib.HTTP(urlinfo.path)
+        h.putrequest('POST', urlinfo.path)
         h.putheader('Content-Type', content_type)
         h.putheader('Content-Length', str(len(body)))
         h.putheader('MIME-Version', '1.0')
