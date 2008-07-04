@@ -196,7 +196,7 @@ class FacebookMiddleware(object):
         self.callback_path = callback_path or getattr(settings, 'FACEBOOK_CALLBACK_PATH', None)
         self.internal = internal or getattr(settings, 'FACEBOOK_INTERNAL', True)
         self.proxy = None
-        if settings.USE_HTTP_PROXY:
+        if getattr(settings, 'USE_HTTP_PROXY', FALSE):
             self.proxy = settings.HTTP_PROXY
 
     def process_request(self, request):
