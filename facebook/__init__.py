@@ -963,6 +963,31 @@ class Facebook(object):
         webbrowser.open(self.get_login_url(popup=popup))
 
 
+    def get_ext_perm_url(self, ext_perm, next=None, popup=False):
+        """
+        Returns the URL that the user should be redirected to in order to grant an extended permission.
+
+        ext_perm -- the name of the extended permission to request
+        next     -- the URL that Facebook should redirect to after login
+
+        """
+        args = {'ext_perm': ext_perm, 'api_key': self.api_key, 'v': '1.0'}
+
+        if next is not None:
+            args['next'] = next
+
+        if popup is True:
+            args['popup'] = 1
+
+        return self.get_url('authorize', **args)
+
+
+    def request_extended_permission(self, ext_perm, popup=False):
+        """Open a web browser telling the user to grant an extended permission."""
+        import webbrowser
+        webbrowser.open(self.get_ext_perm_url(ext_perm, popup=popup))
+
+
     def check_session(self, request):
         """
         Checks the given Django HttpRequest for Facebook parameters such as
