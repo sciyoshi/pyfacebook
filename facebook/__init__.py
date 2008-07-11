@@ -739,7 +739,9 @@ class Facebook(object):
 
     def _hash_args(self, args, secret=None):
         """Hashes arguments by joining key=value pairs, appending a secret, and then taking the MD5 hex digest."""
-        hasher = md5.new(''.join(['%s=%s' % (x, args[x]) for x in sorted(args.keys())]))
+        # @author: houyr
+        # fix for UnicodeEncodeError
+        hasher = md5.new(''.join(['%s=%s' % (x.encode("utf-8"), unicode(args[x]).encode("utf-8")) for x in sorted(args.keys())]))
         if secret:
             hasher.update(secret)
         elif self.secret:
@@ -851,11 +853,21 @@ class Facebook(object):
 
         return result
 
+    def unicode_urlencode(self,params):
+        """
+        @author: houyr
+        A unicode aware version of urllib.urlencode.
+        """
+        if isinstance(params, dict):
+            params = params.items()
+        return urllib.urlencode([(k, isinstance(v, unicode) and v.encode('utf-8') or v)
+                          for k, v in params])
 
     def __call__(self, method, args=None, secure=False):
         """Make a call to Facebook's REST server."""
-
-        post_data = urllib.urlencode(self._build_post_args(method, args))
+        # @author: houyr
+        # fix for bug of UnicodeEncodeError
+        post_data = self.unicode_urlencode(self._build_post_args(method, args))
 
         if self.proxy:
             proxy_handler = urllib2.ProxyHandler(self.proxy)
@@ -906,7 +918,8 @@ class Facebook(object):
 
     def get_authorize_url(self, next=None, next_cancel=None):
         """
-        Returns the URL that the user should be redirected to in order to authorize certain actions for application.
+        Returns the URL that the user should be redirected to in order to
+        authorize certain actions for application.
 
         """
         args = {'api_key': self.api_key, 'v': '1.0'}
