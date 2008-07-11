@@ -8,4 +8,4 @@ setup(name='pyfacebook',
       author='Samuel Cormier-Iijima',
       author_email='sciyoshi@gmail.com',
       url='http://code.google.com/p/pyfacebook',
-      packages=['facebook'])
+      packages=['facebook', 'facebook.djangofb'])
