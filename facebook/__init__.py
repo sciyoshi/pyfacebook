@@ -94,8 +94,6 @@ __all__ = ['Facebook']
 
 VERSION = '0.1'
 
-# REST URLs
-# Change these to /bestserver.php to use the bestserver.
 FACEBOOK_URL = 'http://api.facebook.com/restserver.php'
 FACEBOOK_SECURE_URL = 'https://api.facebook.com/restserver.php'
 
@@ -589,7 +587,7 @@ class PhotosProxy(PhotosProxy):
             img.save(data, img.format)
 
         content_type, body = self.__encode_multipart_formdata(list(args.iteritems()), [(image, data)])
-        urlinfo = urlparse.urlsplit(FACEBOOK_URL)
+        urlinfo = urlparse.urlsplit(self._client.facebook_url)
         h = httplib.HTTP(urlinfo.path)
         h.putrequest('POST', urlinfo.path)
         h.putheader('Content-Type', content_type)
@@ -668,6 +666,12 @@ class Facebook(object):
         True if this is a desktop app, False otherwise. Used for determining how to
         authenticate.
 
+    facebook_url
+        The url to use for Facebook requests.
+
+    facebook_secure_url
+        The url to use for secure Facebook requests.
+
     in_canvas
         True if the current request is for a canvas page.
 
@@ -698,7 +702,7 @@ class Facebook(object):
 
     """
 
-    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None, internal=None, proxy=None):
+    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None, internal=None, proxy=None, facebook_url=None, facebook_secure_url=None):
         """
         Initializes a new Facebook object which provides wrappers for the Facebook API.
 
@@ -730,6 +734,14 @@ class Facebook(object):
         self.internal = internal
         self._friends = None
         self.proxy = proxy
+        if facebook_url is None:
+            self.facebook_url = FACEBOOK_URL
+        else:
+            self.facebook_url = facebook_url
+        if facebook_secure_url is None:
+            self.facebook_secure_url = FACEBOOK_SECURE_URL
+        else:
+            self.facebook_secure_url = facebook_secure_url
 
         for namespace in METHODS:
             self.__dict__[namespace] = eval('%sProxy(self, \'%s\')' % (namespace.title(), 'facebook.%s' % namespace))
@@ -873,14 +885,14 @@ class Facebook(object):
             proxy_handler = urllib2.ProxyHandler(self.proxy)
             opener = urllib2.build_opener(proxy_handler)
             if secure:
-                response = opener.open(FACEBOOK_SECURE_URL, post_data).read() 
+                response = opener.open(self.facebook_secure_url, post_data).read() 
             else:
-                response = opener.open(FACEBOOK_URL, post_data).read()
+                response = opener.open(self.facebook_url, post_data).read()
         else:
             if secure:
-                response = urlread(FACEBOOK_SECURE_URL, post_data)
+                response = urlread(self.facebook_secure_url, post_data)
             else:
-                response = urlread(FACEBOOK_URL, post_data)
+                response = urlread(self.facebook_url, post_data)
 
         return self._parse_response(response, method)
 
