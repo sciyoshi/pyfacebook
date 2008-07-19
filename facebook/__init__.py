@@ -261,6 +261,11 @@ METHODS = {
             ('fields', list, [('default', ['name'])]),
         ],
 
+        'getStandardInfo': [
+            ('uids', list, []),
+            ('fields', list, [('default', ['uid'])]),
+        ],
+
         'getLoggedInUser': [],
 
         'isAppAdded': [],
