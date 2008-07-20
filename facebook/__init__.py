@@ -150,8 +150,8 @@ METHODS = {
         ],
 
         'registerTemplateBundle': [
-            ('one_line_story_template', str, []),
-            ('short_story_template', json, ['optional']),
+            ('one_line_story_templates', json, []),
+            ('short_story_templates', json, ['optional']),
             ('full_story_template', json, ['optional']),
         ],
 
