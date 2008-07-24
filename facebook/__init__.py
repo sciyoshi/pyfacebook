@@ -200,6 +200,7 @@ METHODS = {
             ('to_ids', list, []),
             ('notification', str, []),
             ('email', str, ['optional']),
+            ('type', str, ['optional']),
         ],
 
         'sendRequest': [
