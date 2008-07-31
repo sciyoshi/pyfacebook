@@ -155,6 +155,10 @@ METHODS = {
             ('full_story_template', json, ['optional']),
         ],
 
+        'deactivateTemplateBundleByID': [
+            ('template_bundle_id', int, []),
+        ],
+
         'getRegisteredTemplateBundles': [],
 
         'getRegisteredTemplateBundleByID': [
