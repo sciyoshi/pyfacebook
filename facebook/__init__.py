@@ -173,7 +173,7 @@ METHODS = {
         ],
 
         'publishUserAction': [
-            ('template_bundle_id', str, []),
+            ('template_bundle_id', int, []),
             ('template_data', json, ['optional']),
             ('target_ids', list, ['optional']),
             ('body_general', str, ['optional']),
