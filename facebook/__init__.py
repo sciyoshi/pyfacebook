@@ -556,7 +556,7 @@ class FriendsProxy(FriendsProxy):
 
     def get(self, **kwargs):
         """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=friends.get"""
-        if self._client._friends:
+        if not kwargs.get('flid') and self._client._friends:
             return self._client._friends
         return super(FriendsProxy, self).get(**kwargs)
 
