@@ -101,6 +101,13 @@ class json(object): pass
 
 # simple IDL for the Facebook API
 METHODS = {
+    # admin methods
+    'admin': {
+        'getAllocation': [
+            ('integration_point_name', str, []),
+        ],
+    },
+
     # feed methods
     'feed': {
         'publishStoryToUser': [
