@@ -464,7 +464,11 @@ class Proxy(object):
         self._client = client
         self._name = name
 
-    def __call__(self, method, args=None, add_session_args=True):
+    def __call__(self, method=None, args=None, add_session_args=True):
+        # for Django templates
+        if method is None:
+            return self
+
         if add_session_args:
             self._client._add_session_args(args)
 
@@ -892,8 +896,13 @@ class Facebook(object):
         return urllib.urlencode([(k, isinstance(v, unicode) and v.encode('utf-8') or v)
                           for k, v in params])
 
-    def __call__(self, method, args=None, secure=False):
+    def __call__(self, method=None, args=None, secure=False):
         """Make a call to Facebook's REST server."""
+        # for Django templates, if this object is called without any arguments
+        # return the object itself
+        if method is None:
+            return self
+
         # @author: houyr
         # fix for bug of UnicodeEncodeError
         post_data = self.unicode_urlencode(self._build_post_args(method, args))
