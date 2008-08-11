@@ -23,6 +23,7 @@ __docformat__ = "restructuredtext"
 try:
     from paste.registry import StackedObjectProxy
     from paste.httpexceptions import _HTTPMove
+    from paste.util.quoting import strip_html, html_quote, no_quote
 except ImportError:
     pass
 else:
@@ -37,6 +38,10 @@ else:
         code = 200
         template = '<fb:redirect url="%(location)s" />'
 
+        def html(self, environ):
+            """ text/html representation of the exception """
+            body = self.make_body(environ, self.template, html_quote, no_quote)
+            return body
 
 class FacebookWSGIMiddleware(object):
 
