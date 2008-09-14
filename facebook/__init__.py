@@ -610,7 +610,7 @@ class PhotosProxy(PhotosProxy):
         content_type, body = self.__encode_multipart_formdata(list(args.iteritems()), [(image, data)])
         urlinfo = urlparse.urlsplit(self._client.facebook_url)
         h = httplib.HTTP(urlinfo[1])
-        h.putrequest('POST', urlinfo.path)
+        h.putrequest('POST', urlinfo[2])
         h.putheader('Content-Type', content_type)
         h.putheader('Content-Length', str(len(body)))
         h.putheader('MIME-Version', '1.0')
