@@ -101,6 +101,14 @@ class json(object): pass
 
 # simple IDL for the Facebook API
 METHODS = {
+    'application': {
+        'getPublicInfo': [
+            ('application_id', int, ['optional']),
+            ('application_api_key', str, ['optional']),
+            ('application_canvas_name ', str,['optional']),
+        ],
+    },
+
     # admin methods
     'admin': {
         'getAllocation': [
