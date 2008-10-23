@@ -18,9 +18,9 @@ class MessageManager(models.Manager):
 
 class Message(models.Model):
     """Represents a message for a Facebook user."""
-    uid = models.CharField(maxlength=25)
+    uid = models.CharField(max_length=25)
     status = models.IntegerField(choices=FB_MESSAGE_STATUS)
-    message = models.CharField(maxlength=300)
+    message = models.CharField(max_length=300)
     objects = MessageManager()
 
     def __unicode__(self):
