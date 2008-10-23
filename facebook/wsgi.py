@@ -22,7 +22,7 @@ __docformat__ = "restructuredtext"
 
 try:
     from paste.registry import StackedObjectProxy
-    from paste.httpexceptions import _HTTPMove
+    from webob.exc import _HTTPMove
     from paste.util.quoting import strip_html, html_quote, no_quote
 except ImportError:
     pass
@@ -83,7 +83,7 @@ class FacebookWSGIMiddleware(object):
 try:
     import pylons
     from pylons.controllers.util import redirect_to as pylons_redirect_to
-    from webhelpers import url_for
+    from routes import url_to
 except ImportError:
     pass
 else:
@@ -116,7 +116,7 @@ else:
 
         def apps_url_for(self, *args, **kargs):
             """Like url_for, but starts with "http://apps.facebook.com"."""
-            return "http://apps.facebook.com" + url_for(*args, **kargs)
+            return "http://apps.facebook.com" + url_to(*args, **kargs)
 
 
     def create_pylons_facebook_middleware(app, config):
