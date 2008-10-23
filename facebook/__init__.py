@@ -1071,6 +1071,15 @@ class Facebook(object):
             params = self.validate_signature(request.GET)
 
         if not params:
+            # first check if we are in django - to check cookies
+            if hasattr(request, 'COOKIES'):
+                params = self.validate_cookie_signature(request.COOKIES)
+            else:
+                # if not, then we might be on GoogleAppEngine, check their request object cookies
+                if hasattr(request,'cookies'):
+                    params = self.validate_cookie_signature(request.cookies)
+
+        if not params:
             return False
 
         if params.get('in_canvas') == '1':
@@ -1125,6 +1134,33 @@ class Facebook(object):
             return args
         else:
             return None
+
+    def validate_cookie_signature(self, cookies):
+        """
+        Validate parameters passed by cookies, namely facebookconnect or js api.
+        """
+        if not self.api_key in cookies.keys():
+            return None
+
+        sigkeys = []
+        params = dict()
+        for k in sorted(cookies.keys()):
+            if k.startswith(self.api_key+"_"):
+                sigkeys.append(k)
+                params[k.replace(self.api_key+"_","")] = cookies[k]
+
+
+        vals = ''.join(['%s=%s' % (x.replace(self.api_key+"_",""), cookies[x]) for x in sigkeys])
+        hasher = md5.new(vals)
+        
+        hasher.update(self.secret_key)
+        digest = hasher.hexdigest()
+        if digest == cookies[self.api_key]:
+            return params
+        else:
+            return False
+
+
 
 
 if __name__ == '__main__':
