@@ -174,6 +174,7 @@ METHODS = {
             ('one_line_story_templates', json, []),
             ('short_story_templates', json, ['optional']),
             ('full_story_template', json, ['optional']),
+            ('action_links', json, ['optional']),
         ],
 
         'deactivateTemplateBundleByID': [
