@@ -75,12 +75,14 @@ except ImportError:
 try:
     from google.appengine.api import urlfetch
 
-    def urlread(url, data=None):
+    def urlread(url, data=None, headers=None):
         if data is not None:
-            headers = {"Content-type": "application/x-www-form-urlencoded"}
+            if headers is None:
+                headers = {"Content-type": "application/x-www-form-urlencoded"}
             method = urlfetch.POST
         else:
-            headers = {}
+            if headers is None:
+                headers = {}
             method = urlfetch.GET
 
         result = urlfetch.fetch(url, method=method,
@@ -590,7 +592,7 @@ class FriendsProxy(FriendsProxy):
 class PhotosProxy(PhotosProxy):
     """Special proxy for facebook.photos."""
 
-    def upload(self, image, aid=None, caption=None, size=(604, 1024)):
+    def upload(self, image, aid=None, caption=None, size=(604, 1024), filename=None):
         """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=photos.upload
 
         size -- an optional size (width, height) to resize the image to before uploading. Resizes by default
@@ -611,34 +613,55 @@ class PhotosProxy(PhotosProxy):
         except ImportError:
             import StringIO
 
-        try:
-            import Image
-        except ImportError:
-            data = StringIO.StringIO(open(image, 'rb').read())
+        # check for a filename specified...if the user is passing binary data in
+        # image then a filename will be specified
+        if filename is None:
+            try:
+                import Image
+            except ImportError:
+                data = StringIO.StringIO(open(image, 'rb').read())
+            else:
+                img = Image.open(image)
+                if size:
+                    img.thumbnail(size, Image.ANTIALIAS)
+                data = StringIO.StringIO()
+                img.save(data, img.format)
         else:
-            img = Image.open(image)
-            if size:
-                img.thumbnail(size, Image.ANTIALIAS)
-            data = StringIO.StringIO()
-            img.save(data, img.format)
+            # there was a filename specified, which indicates that image was not
+            # the path to an image file but rather the binary data of a file
+            data = StringIO.StringIO(image)
+            image = filename
 
         content_type, body = self.__encode_multipart_formdata(list(args.iteritems()), [(image, data)])
         urlinfo = urlparse.urlsplit(self._client.facebook_url)
-        h = httplib.HTTP(urlinfo[1])
-        h.putrequest('POST', urlinfo[2])
-        h.putheader('Content-Type', content_type)
-        h.putheader('Content-Length', str(len(body)))
-        h.putheader('MIME-Version', '1.0')
-        h.putheader('User-Agent', 'PyFacebook Client Library')
-        h.endheaders()
-        h.send(body)
+        try:
+            h = httplib.HTTP(urlinfo[1])
+            h.putrequest('POST', urlinfo[2])
+            h.putheader('Content-Type', content_type)
+            h.putheader('Content-Length', str(len(body)))
+            h.putheader('MIME-Version', '1.0')
+            h.putheader('User-Agent', 'PyFacebook Client Library')
+            h.endheaders()
+            h.send(body)
 
-        reply = h.getreply()
+            reply = h.getreply()
 
-        if reply[0] != 200:
-            raise Exception('Error uploading photo: Facebook returned HTTP %s (%s)' % (reply[0], reply[1]))
+            if reply[0] != 200:
+                raise Exception('Error uploading photo: Facebook returned HTTP %s (%s)' % (reply[0], reply[1]))
 
-        response = h.file.read()
+            response = h.file.read()
+        except:
+            # sending the photo failed, perhaps we are using GAE
+            try:
+                from google.appengine.api import urlfetch
+
+                try:
+                    response = urlread(url=self._client.facebook_url,data=body,headers={'POST':urlinfo[2],'Content-Type':content_type,'MIME-Version':'1.0'})
+                except urllib2.URLError:
+                    raise Exception('Error uploading photo: Facebook returned %s' % (response))
+            except ImportError:
+                # could not import from google.appengine.api, so we are not running in GAE
+                raise Exception('Error uploading photo.')
 
         return self._client._parse_response(response, 'facebook.photos.upload')
 
