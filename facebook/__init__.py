@@ -260,6 +260,7 @@ METHODS = {
 
         'getFBML': [
             ('uid', int, ['optional']),
+            ('type', int, ['optional']),
         ],
 
         'setInfo': [
