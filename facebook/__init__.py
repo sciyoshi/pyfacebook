@@ -302,6 +302,7 @@ METHODS = {
 
         'hasAppPermission': [
             ('ext_perm', str, []),
+            ('uid', int, ['optional']),
         ],
 
         'setStatus': [
