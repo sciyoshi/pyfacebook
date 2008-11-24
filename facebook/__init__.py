@@ -308,6 +308,8 @@ METHODS = {
         'setStatus': [
             ('status', str, []),
             ('clear', bool, []),
+            ('status_includes_verb', bool, ['optional']),
+            ('uid', int, ['optional']),
         ],
     },
 
@@ -881,6 +883,8 @@ class Facebook(object):
                 args[arg[0]] = ','.join(str(a) for a in arg[1])
             elif type(arg[1]) == unicode:
                 args[arg[0]] = arg[1].encode("UTF-8")
+            elif type(arg[1]) == bool:
+                args[arg[0]] = str(arg[1]).lower()
 
         args['method'] = method
         args['api_key'] = self.api_key
@@ -930,7 +934,7 @@ class Facebook(object):
 
         return result
 
-    def unicode_urlencode(self,params):
+    def unicode_urlencode(self, params):
         """
         @author: houyr
         A unicode aware version of urllib.urlencode.
