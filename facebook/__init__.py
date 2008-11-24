@@ -324,6 +324,10 @@ METHODS = {
         'getMembers': [
             ('eid', int, []),
         ],
+
+        'create': [
+            ('event_info', json, []),
+        ],
     },
 
     # update methods
