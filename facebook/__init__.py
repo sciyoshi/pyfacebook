@@ -1136,6 +1136,12 @@ class Facebook(object):
                 self.page_id = params['page_id']
             else:
                 return False
+        elif 'profile_session_key' in params:
+            self.session_key = params['profile_session_key']
+            if 'profile_user' in params:
+                self.uid = params['profile_user']
+            else:
+                return False
         else:
             return False
 
