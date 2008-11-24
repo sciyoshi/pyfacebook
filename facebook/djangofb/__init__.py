@@ -1,3 +1,5 @@
+import re
+
 import facebook
 
 from django.http import HttpResponse, HttpResponseRedirect
@@ -22,6 +24,8 @@ class Facebook(facebook.Facebook):
         """
         if self.in_canvas:
             return HttpResponse('<fb:redirect url="%s" />' % (url, ))
+        elif re.search("^https?:\/\/([^\/]*\.)?facebook\.com(:\d+)?", url.lower()):
+            return HttpResponse('<script type="text/javascript">\ntop.location.href = "%s";\n</script>' % url)
         else:
             return HttpResponseRedirect(url)
 
