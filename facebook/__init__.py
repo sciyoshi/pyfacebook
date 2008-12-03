@@ -47,9 +47,12 @@ apt-get install python-simplejson on a Debian-like system.
 import md5
 import sys
 import time
+import struct
 import urllib
 import urllib2
 import httplib
+import hashlib
+import binascii
 import urlparse
 import mimetypes
 
@@ -478,6 +481,20 @@ METHODS = {
             ('value', str, []),
             ('expires', int, ['optional']),
             ('path', str, ['optional']),
+        ],
+    },
+
+    # connect methods
+    'connect': {
+        'registerUsers': [
+            ('accounts', json, []),
+        ],
+
+        'unregisterUsers': [
+            ('email_hashes', json, []),
+        ],
+
+        'getUnconnectedFriendsCount': [
         ],
     },
 }
@@ -934,6 +951,19 @@ class Facebook(object):
 
         return result
 
+
+    def hash_email(self, email):
+        """
+        Hash an email address in a format suitable for Facebook Connect.
+
+        """
+        email = email.lower().strip()
+        return "%s_%s" % (
+            struct.unpack("I", struct.pack("i", binascii.crc32(email)))[0],
+            hashlib.md5(email).hexdigest(),
+        )
+
+
     def unicode_urlencode(self, params):
         """
         @author: houyr
@@ -943,6 +973,7 @@ class Facebook(object):
             params = params.items()
         return urllib.urlencode([(k, isinstance(v, unicode) and v.encode('utf-8') or v)
                           for k, v in params])
+
 
     def __call__(self, method=None, args=None, secure=False):
         """Make a call to Facebook's REST server."""
