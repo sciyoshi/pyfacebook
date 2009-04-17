@@ -127,6 +127,13 @@ METHODS = {
         ],
     },
 
+    # auth methods
+    'auth': {
+        'revokeAuthorization': [
+            ('uid', int, ['optional']),
+        ],
+    },
+
     # feed methods
     'feed': {
         'publishStoryToUser': [
@@ -580,7 +587,7 @@ class FacebookError(Exception):
         return 'Error %s: %s' % (self.code, self.msg)
 
 
-class AuthProxy(Proxy):
+class AuthProxy(AuthProxy):
     """Special proxy for facebook.auth."""
 
     def getSession(self):
@@ -829,8 +836,6 @@ class Facebook(object):
 
         for namespace in METHODS:
             self.__dict__[namespace] = eval('%sProxy(self, \'%s\')' % (namespace.title(), 'facebook.%s' % namespace))
-
-        self.auth = AuthProxy(self, 'facebook.auth')
 
 
     def _hash_args(self, args, secret=None):
