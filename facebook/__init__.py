@@ -44,7 +44,6 @@ http://undefined.org/python/#simplejson to download it, or do
 apt-get install python-simplejson on a Debian-like system.
 """
 
-import md5
 import sys
 import time
 import struct
@@ -55,7 +54,7 @@ import hashlib
 import binascii
 import urlparse
 import mimetypes
-
+    
 # try to use simplejson first, otherwise fallback to XML
 RESPONSE_FORMAT = 'JSON'
 try:
@@ -842,7 +841,7 @@ class Facebook(object):
         """Hashes arguments by joining key=value pairs, appending a secret, and then taking the MD5 hex digest."""
         # @author: houyr
         # fix for UnicodeEncodeError
-        hasher = md5.new(''.join(['%s=%s' % (isinstance(x, unicode) and x.encode("utf-8") or x, isinstance(args[x], unicode) and args[x].encode("utf-8") or args[x]) for x in sorted(args.keys())]))
+        hasher = hashlib.md5(''.join(['%s=%s' % (isinstance(x, unicode) and x.encode("utf-8") or x, isinstance(args[x], unicode) and args[x].encode("utf-8") or args[x]) for x in sorted(args.keys())]))
         if secret:
             hasher.update(secret)
         elif self.secret:
@@ -1233,7 +1232,7 @@ class Facebook(object):
 
 
         vals = ''.join(['%s=%s' % (x.replace(self.api_key+"_",""), cookies[x]) for x in sigkeys])
-        hasher = md5.new(vals)
+        hasher = hashlib.md5(vals)
         
         hasher.update(self.secret_key)
         digest = hasher.hexdigest()
