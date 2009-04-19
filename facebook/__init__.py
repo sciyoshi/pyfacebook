@@ -444,6 +444,18 @@ METHODS = {
             ('pids', list, []),
         ],
     },
+    
+    # status methods
+    'status': {
+        'get': [
+            ('uid', int, ['optional']),
+            ('limit', int, ['optional']),
+        ],
+        'set': [
+            ('status', str, ['optional']),
+            ('uid', int, ['optional']),
+        ],
+    },
 
     # fbml methods
     'fbml': {
