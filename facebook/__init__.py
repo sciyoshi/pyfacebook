@@ -203,6 +203,7 @@ METHODS = {
             ('template_data', json, ['optional']),
             ('target_ids', list, ['optional']),
             ('body_general', str, ['optional']),
+            ('story_size', int, ['optional']),
         ],
     },
 
