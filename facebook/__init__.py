@@ -515,6 +515,60 @@ METHODS = {
         'getUnconnectedFriendsCount': [
         ],
     },
+
+    #stream methods (beta)
+    'stream' : {
+        'addComment' : [
+            ('post_id', int, []),
+            ('comment', str, []),
+            ('uid', int, ['optional']),
+        ],
+
+        'addLike': [
+            ('uid', int, ['optional']),
+            ('post_id', int, ['optional']),
+        ],
+            
+        'get' : [
+            ('viewer_id', int, ['optional']),
+            ('source_ids', list, ['optional']),
+            ('start_time', int, ['optional']),
+            ('end_time', int, ['optional']),
+            ('limit', int, ['optional']),
+            ('filter_key', str, ['optional']),
+        ],
+            
+        'getComments' : [
+            ('post_id', int, []),
+        ],
+            
+        'getFilters' : [
+            ('uid', int, ['optional']),
+        ],
+            
+        'publish' : [
+            ('message', str, ['optional']),
+            ('attachment', object, ['optional']),
+            ('action_links', list, ['optional']),
+            ('target_id', str, ['optional']),
+            ('uid', str, ['optional']),
+        ],    
+        
+        'remove' : [
+            ('post_id', int, []),
+            ('uid', int, ['optional']),
+        ],
+        
+        'removeComment' : [
+            ('comment_id', int, []),
+            ('uid', int, ['optional']),
+        ],
+        
+        'removeLike' : [
+            ('uid', int, ['optional']),
+            ('post_id', int, ['optional']),
+        ],
+    }
 }
 
 class Proxy(object):
