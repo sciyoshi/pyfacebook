@@ -1,8 +1,13 @@
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render_to_response
+#uncomment the following two lines and the one below
+#if you dont want to use a decorator instead of the middleware
+#from django.utils.decorators import decorator_from_middleware
+#from facebook.djangofb import FacebookMiddleware
 
 import facebook.djangofb as facebook
 
+#@decorator_from_middleware(FacebookMiddleware)
 @facebook.require_login()
 def canvas(request):
     # If you're using FBML, it'd be better to use <fb:name> than to do this - this is just as an example
