@@ -14,6 +14,16 @@ Django application. Then you need to edit the following settings:
   'facebook.djangofb.FacebookMiddleware'. This will attach a facebook object
   to every incoming request.
 
+* However if you don't wan't to attach a facebook object to every incoming 
+  request you can use the middleware as a decorator. 
+  from django.utils.decorators import decorator_from_middleware
+  from facebook.djangofb import FacebookMiddleware
+
+  @decorator_from_middleware(FacebookMiddleware)
+  @facebook.require_login()
+  def canvas(request):
+     ...
+     
 * In urls.py, have something in your urlpatterns like:
   (r'^facebook/', include('YOUR_PROJECT_NAME.pyfacebook_sample.urls')),
   This will tell the sample application to live under /facebook/.

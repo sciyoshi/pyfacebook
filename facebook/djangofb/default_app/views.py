@@ -1,5 +1,9 @@
 from django.http import HttpResponse
 from django.views.generic.simple import direct_to_template
+#uncomment the following two lines and the one below
+#if you dont want to use a decorator instead of the middleware
+#from django.utils.decorators import decorator_from_middleware
+#from facebook.djangofb import FacebookMiddleware
 
 # Import the Django helpers
 import facebook.djangofb as facebook
@@ -12,6 +16,7 @@ from models import User
 # to let users see the page without granting our app
 # access to their info. See the wiki for details on how
 # to do this.
+#@decorator_from_middleware(FacebookMiddleware)
 @facebook.require_login()
 def canvas(request):
     # Get the User object for the currently logged in user
