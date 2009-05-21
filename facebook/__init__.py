@@ -840,6 +840,10 @@ class Facebook(object):
         True if this is a desktop app, False otherwise. Used for determining how to
         authenticate.
 
+    ext_perms
+        Any extended permissions that the user has granted to your application.
+        This parameter is set only if the user has granted any.
+
     facebook_url
         The url to use for Facebook requests.
 
@@ -915,6 +919,7 @@ class Facebook(object):
         self._friends = None
         self.locale = 'en_US'
         self.profile_update_time = None
+        self.ext_perms = None
         self.proxy = proxy
         if facebook_url is None:
             self.facebook_url = FACEBOOK_URL
@@ -1266,6 +1271,9 @@ class Facebook(object):
                 self.profile_update_time = int(params['profile_update_time'])
             except ValueError:
                 pass
+
+        if 'ext_perms' in params:
+            self.ext_perms = params['ext_perms']
 
         if 'friends' in params:
             if params['friends']:
