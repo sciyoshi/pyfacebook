@@ -858,6 +858,9 @@ class Facebook(object):
     page_id
         Set to the page_id of the current page (if any)
 
+    profile_update_time
+        The time when this user's profile was last updated. This is a UNIX timestamp. Default: None if unknown.
+
     secret
         Secret that is used after getSession for desktop apps.
 
@@ -911,6 +914,7 @@ class Facebook(object):
         self.internal = internal
         self._friends = None
         self.locale = 'en_US'
+        self.profile_update_time = None
         self.proxy = proxy
         if facebook_url is None:
             self.facebook_url = FACEBOOK_URL
@@ -1256,6 +1260,12 @@ class Facebook(object):
 
         if 'locale' in params:
             self.locale = params['locale']
+
+        if 'profile_update_time' in params:
+            try:
+                self.profile_update_time = int(params['profile_update_time'])
+            except ValueError:
+                pass
 
         if 'friends' in params:
             if params['friends']:
