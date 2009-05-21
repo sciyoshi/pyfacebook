@@ -853,6 +853,9 @@ class Facebook(object):
     in_canvas
         True if the current request is for a canvas page.
 
+    in_profile_tab
+        True if the current request is for a user's tab for your application.
+
     internal
         True if this Facebook object is for an internal application (one that can be added on Facebook)
 
@@ -912,6 +915,7 @@ class Facebook(object):
         self.uid = None
         self.page_id = None
         self.in_canvas = False
+        self.in_profile_tab = False
         self.added = False
         self.app_name = app_name
         self.callback_path = callback_path
@@ -1256,6 +1260,9 @@ class Facebook(object):
 
         if params.get('in_canvas') == '1':
             self.in_canvas = True
+
+        if params.get('in_profile_tab') == '1':
+            self.in_profile_tab = True
 
         if params.get('added') == '1':
             self.added = True
