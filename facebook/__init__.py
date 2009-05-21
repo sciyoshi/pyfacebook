@@ -852,6 +852,9 @@ class Facebook(object):
     internal
         True if this Facebook object is for an internal application (one that can be added on Facebook)
 
+    locale
+        The user's locale. Default: 'en_US'
+
     page_id
         Set to the page_id of the current page (if any)
 
@@ -907,6 +910,7 @@ class Facebook(object):
         self.callback_path = callback_path
         self.internal = internal
         self._friends = None
+        self.locale = 'en_US'
         self.proxy = proxy
         if facebook_url is None:
             self.facebook_url = FACEBOOK_URL
@@ -1249,6 +1253,9 @@ class Facebook(object):
 
         if params.get('expires'):
             self.session_key_expires = int(params['expires'])
+
+        if 'locale' in params:
+            self.locale = params['locale']
 
         if 'friends' in params:
             if params['friends']:
