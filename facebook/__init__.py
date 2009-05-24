@@ -840,6 +840,10 @@ class Facebook(object):
         True if this is a desktop app, False otherwise. Used for determining how to
         authenticate.
 
+    ext_perms
+        Any extended permissions that the user has granted to your application.
+        This parameter is set only if the user has granted any.
+
     facebook_url
         The url to use for Facebook requests.
 
@@ -849,11 +853,20 @@ class Facebook(object):
     in_canvas
         True if the current request is for a canvas page.
 
+    in_profile_tab
+        True if the current request is for a user's tab for your application.
+
     internal
         True if this Facebook object is for an internal application (one that can be added on Facebook)
 
+    locale
+        The user's locale. Default: 'en_US'
+
     page_id
         Set to the page_id of the current page (if any)
+
+    profile_update_time
+        The time when this user's profile was last updated. This is a UNIX timestamp. Default: None if unknown.
 
     secret
         Secret that is used after getSession for desktop apps.
@@ -902,11 +915,15 @@ class Facebook(object):
         self.uid = None
         self.page_id = None
         self.in_canvas = False
+        self.in_profile_tab = False
         self.added = False
         self.app_name = app_name
         self.callback_path = callback_path
         self.internal = internal
         self._friends = None
+        self.locale = 'en_US'
+        self.profile_update_time = None
+        self.ext_perms = None
         self.proxy = proxy
         if facebook_url is None:
             self.facebook_url = FACEBOOK_URL
@@ -1244,11 +1261,26 @@ class Facebook(object):
         if params.get('in_canvas') == '1':
             self.in_canvas = True
 
+        if params.get('in_profile_tab') == '1':
+            self.in_profile_tab = True
+
         if params.get('added') == '1':
             self.added = True
 
         if params.get('expires'):
             self.session_key_expires = int(params['expires'])
+
+        if 'locale' in params:
+            self.locale = params['locale']
+
+        if 'profile_update_time' in params:
+            try:
+                self.profile_update_time = int(params['profile_update_time'])
+            except ValueError:
+                pass
+
+        if 'ext_perms' in params:
+            self.ext_perms = params['ext_perms']
 
         if 'friends' in params:
             if params['friends']:
