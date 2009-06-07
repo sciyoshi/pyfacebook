@@ -50,11 +50,14 @@ import struct
 import urllib
 import urllib2
 import httplib
-import hashlib
+try:
+    import hashlib
+except ImportError:
+    import md5 as hashlib
 import binascii
 import urlparse
 import mimetypes
-    
+
 # try to use simplejson first, otherwise fallback to XML
 RESPONSE_FORMAT = 'JSON'
 try:
@@ -89,7 +92,7 @@ try:
 
         result = urlfetch.fetch(url, method=method,
                                 payload=data, headers=headers)
-        
+
         if result.status_code == 200:
             return result.content
         else:
@@ -99,7 +102,7 @@ except ImportError:
     def urlread(url, data=None):
         res = urllib2.urlopen(url, data=data)
         return res.read()
-    
+
 __all__ = ['Facebook']
 
 VERSION = '0.1'
@@ -445,7 +448,7 @@ METHODS = {
             ('pids', list, []),
         ],
     },
-    
+
     # status methods
     'status': {
         'get': [
@@ -529,7 +532,7 @@ METHODS = {
             ('uid', int, ['optional']),
             ('post_id', int, ['optional']),
         ],
-            
+
         'get' : [
             ('viewer_id', int, ['optional']),
             ('source_ids', list, ['optional']),
@@ -538,33 +541,33 @@ METHODS = {
             ('limit', int, ['optional']),
             ('filter_key', str, ['optional']),
         ],
-            
+
         'getComments' : [
             ('post_id', int, []),
         ],
-            
+
         'getFilters' : [
             ('uid', int, ['optional']),
         ],
-            
+
         'publish' : [
             ('message', str, ['optional']),
             ('attachment', object, ['optional']),
             ('action_links', list, ['optional']),
             ('target_id', str, ['optional']),
             ('uid', str, ['optional']),
-        ],    
-        
+        ],
+
         'remove' : [
             ('post_id', int, []),
             ('uid', int, ['optional']),
         ],
-        
+
         'removeComment' : [
             ('comment_id', int, []),
             ('uid', int, ['optional']),
         ],
-        
+
         'removeLike' : [
             ('uid', int, ['optional']),
             ('post_id', int, ['optional']),
@@ -735,7 +738,7 @@ class PhotosProxy(PhotosProxy):
         try:
             content_length = len(body)
             chunk_size = 4096
-            
+
             h = httplib.HTTPConnection(urlinfo[1])
             h.putrequest('POST', urlinfo[2])
             h.putheader('Content-Type', content_type)
@@ -743,7 +746,7 @@ class PhotosProxy(PhotosProxy):
             h.putheader('MIME-Version', '1.0')
             h.putheader('User-Agent', 'PyFacebook Client Library')
             h.endheaders()
-            
+
             if callback:
                 count = 0
                 while len(body) > 0:
@@ -753,15 +756,15 @@ class PhotosProxy(PhotosProxy):
                     else:
                         data = body[0:chunk_size]
                         body = body[chunk_size:]
-                    
+
                     h.send(data)
                     count += 1
                     callback(count, chunk_size, content_length)
             else:
                 h.send(body)
-            
+
             response = h.getresponse()
-            
+
             if response.status != 200:
                 raise Exception('Error uploading photo: Facebook returned HTTP %s (%s)' % (response.status, response.reason))
             response = response.read()
@@ -1095,7 +1098,7 @@ class Facebook(object):
             proxy_handler = urllib2.ProxyHandler(self.proxy)
             opener = urllib2.build_opener(proxy_handler)
             if secure:
-                response = opener.open(self.facebook_secure_url, post_data).read() 
+                response = opener.open(self.facebook_secure_url, post_data).read()
             else:
                 response = opener.open(self.facebook_url, post_data).read()
         else:
@@ -1106,7 +1109,7 @@ class Facebook(object):
 
         return self._parse_response(response, method)
 
-    
+
     # URL helpers
     def get_url(self, page, **args):
         """
@@ -1120,7 +1123,7 @@ class Facebook(object):
     def get_app_url(self, path=''):
         """
         Returns the URL for this app's canvas page, according to app_name.
-        
+
         """
         return 'http://apps.facebook.com/%s/%s' % (self.app_name, path)
 
@@ -1166,7 +1169,7 @@ class Facebook(object):
 
         if next is not None:
             args['next'] = next
-			
+
         if canvas is True:
             args['canvas'] = 1
 
@@ -1349,7 +1352,7 @@ class Facebook(object):
 
         vals = ''.join(['%s=%s' % (x.replace(self.api_key+"_",""), cookies[x]) for x in sigkeys])
         hasher = hashlib.md5(vals)
-        
+
         hasher.update(self.secret_key)
         digest = hasher.hexdigest()
         if digest == cookies[self.api_key]:
