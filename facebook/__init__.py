@@ -1305,6 +1305,8 @@ class Facebook(object):
                 self.uid = params['profile_user']
             else:
                 return False
+        elif 'canvas_user' in params:
+            self.uid = params['canvas_user']
         else:
             return False
 
