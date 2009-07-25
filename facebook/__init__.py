@@ -61,10 +61,10 @@ import mimetypes
 # try to use simplejson first, otherwise fallback to XML
 RESPONSE_FORMAT = 'JSON'
 try:
-    import json as simplejson
+    import simplejson
 except ImportError:
     try:
-        import simplejson
+        import json as simplejson
     except ImportError:
         try:
             from django.utils import simplejson
