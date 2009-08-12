@@ -553,7 +553,7 @@ METHODS = {
         'publish' : [
             ('message', str, ['optional']),
             ('attachment', json, ['optional']),
-            ('action_links', list, ['optional']),
+            ('action_links', json, ['optional']),
             ('target_id', str, ['optional']),
             ('uid', str, ['optional']),
         ],
