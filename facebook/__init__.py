@@ -1307,6 +1307,8 @@ class Facebook(object):
                 return False
         elif 'canvas_user' in params:
             self.uid = params['canvas_user']
+        elif 'uninstall' in params:
+            self.uid = params['user']
         else:
             return False
 
