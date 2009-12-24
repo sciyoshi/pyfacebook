@@ -494,7 +494,7 @@ METHODS = {
     'data': {
         'getCookies': [
             ('uid', int, []),
-            ('string', str, []),
+            ('string', str, ['optional']),
         ],
 
         'setCookie': [
