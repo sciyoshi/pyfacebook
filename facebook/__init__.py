@@ -1341,23 +1341,27 @@ class Facebook(object):
         """
         Validate parameters passed by cookies, namely facebookconnect or js api.
         """
-        if not self.api_key in cookies.keys():
+
+        api_key = self.api_key
+        if api_key not in cookies:
             return None
 
-        sigkeys = []
-        params = dict()
-        for k in sorted(cookies.keys()):
-            if k.startswith(self.api_key+"_"):
-                sigkeys.append(k)
-                params[k.replace(self.api_key+"_","")] = cookies[k]
-
-
-        vals = ''.join(['%s=%s' % (x.replace(self.api_key+"_",""), cookies[x]) for x in sigkeys])
+        prefix = api_key + "_"
+       
+        params = {} 
+        vals = ''
+        for k in sorted(cookies):
+            if k.startswith(prefix):
+                key = k.replace(prefix,"")
+                value = cookies[k]
+                params[key] = value
+                vals += '%s=%s' % (key, value)
+                
         hasher = hashlib.md5(vals)
 
         hasher.update(self.secret_key)
         digest = hasher.hexdigest()
-        if digest == cookies[self.api_key]:
+        if digest == cookies[api_key]:
             return params
         else:
             return False
