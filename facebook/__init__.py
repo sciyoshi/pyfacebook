@@ -856,6 +856,9 @@ class Facebook(object):
     in_canvas
         True if the current request is for a canvas page.
 
+    in_iframe
+        True if the current request is for an HTML page to embed in Facebook inside an iframe.
+
     in_profile_tab
         True if the current request is for a user's tab for your application.
 
@@ -918,6 +921,7 @@ class Facebook(object):
         self.uid = None
         self.page_id = None
         self.in_canvas = False
+        self.in_iframe = False
         self.in_profile_tab = False
         self.added = False
         self.app_name = app_name
@@ -1263,6 +1267,9 @@ class Facebook(object):
 
         if params.get('in_canvas') == '1':
             self.in_canvas = True
+
+        if params.get('in_iframe') == '1':
+            self.in_iframe = True
 
         if params.get('in_profile_tab') == '1':
             self.in_profile_tab = True
