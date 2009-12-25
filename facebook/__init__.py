@@ -118,7 +118,7 @@ METHODS = {
         'getPublicInfo': [
             ('application_id', int, ['optional']),
             ('application_api_key', str, ['optional']),
-            ('application_canvas_name ', str,['optional']),
+            ('application_canvas_name', str,['optional']),
         ],
     },
 
