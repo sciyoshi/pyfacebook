@@ -398,6 +398,7 @@ METHODS = {
     # pages methods
     'pages': {
         'getInfo': [
+            ('fields', list, [('default', ['page_id', 'name'])]),
             ('page_ids', list, ['optional']),
             ('uid', int, ['optional']),
         ],
