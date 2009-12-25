@@ -1099,6 +1099,10 @@ class Facebook(object):
         if method is None:
             return self
 
+        # __init__ hard-codes into en_US
+        if not args.has_key('locale'):
+            args['locale'] = self.locale
+
         # @author: houyr
         # fix for bug of UnicodeEncodeError
         post_data = self.unicode_urlencode(self._build_post_args(method, args))
