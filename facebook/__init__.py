@@ -859,6 +859,9 @@ class Facebook(object):
     in_iframe
         True if the current request is for an HTML page to embed in Facebook inside an iframe.
 
+    is_session_from_cookie
+        True if the current request session comes from a session cookie.
+
     in_profile_tab
         True if the current request is for a user's tab for your application.
 
@@ -922,6 +925,7 @@ class Facebook(object):
         self.page_id = None
         self.in_canvas = False
         self.in_iframe = False
+        self.is_session_from_cookie = False
         self.in_profile_tab = False
         self.added = False
         self.app_name = app_name
@@ -1231,6 +1235,7 @@ class Facebook(object):
         if self.session_key and (self.uid or self.page_id):
             return True
 
+
         if request.method == 'POST':
             params = self.validate_signature(request.POST)
         else:
@@ -1257,10 +1262,12 @@ class Facebook(object):
             # first check if we are in django - to check cookies
             if hasattr(request, 'COOKIES'):
                 params = self.validate_cookie_signature(request.COOKIES)
+                self.is_session_from_cookie = True
             else:
                 # if not, then we might be on GoogleAppEngine, check their request object cookies
                 if hasattr(request,'cookies'):
                     params = self.validate_cookie_signature(request.cookies)
+                    self.is_session_from_cookie = True
 
         if not params:
             return False
@@ -1371,6 +1378,7 @@ class Facebook(object):
         hasher.update(self.secret_key)
         digest = hasher.hexdigest()
         if digest == cookies[api_key]:
+            params['is_session_from_cookie'] = True
             return params
         else:
             return False

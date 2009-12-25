@@ -5,6 +5,7 @@ import facebook
 from django.http import HttpResponse, HttpResponseRedirect
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
+from datetime import datetime
 
 try:
     from threading import local
@@ -213,4 +214,24 @@ class FacebookMiddleware(object):
         if not self.internal and request.facebook.session_key and request.facebook.uid:
             request.session['facebook_session_key'] = request.facebook.session_key
             request.session['facebook_user_id'] = request.facebook.uid
+
+        try:
+            fb = request.facebook
+        except:
+            return response
+
+        if not fb.is_session_from_cookie:
+            # Make sure the browser accepts our session cookies inside an Iframe
+            response['P3P'] = 'CP="NOI DSP COR NID ADMa OPTa OUR NOR"'
+            fb_cookies = {
+                'expires': fb.session_key_expires,
+                'session_key': fb.session_key,
+                'user': fb.uid,
+            }
+
+            expire_time = datetime.utcfromtimestamp(fb.session_key_expires)
+
+            for k in fb_cookies:
+                response.set_cookie(self.api_key + '_' + k, fb_cookies[k], expires=expire_time )
+            response.set_cookie(self.api_key , fb._hash_args(fb_cookies), expires=expire_time )
         return response
