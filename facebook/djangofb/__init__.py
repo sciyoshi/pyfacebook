@@ -1,5 +1,5 @@
 import re
-
+import datetime
 import facebook
 
 from django.http import HttpResponse, HttpResponseRedirect
@@ -206,14 +206,22 @@ class FacebookMiddleware(object):
 
     def process_request(self, request):
         _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=self.callback_path, internal=self.internal, proxy=self.proxy)
-        if not self.internal and 'facebook_session_key' in request.session and 'facebook_user_id' in request.session:
-            request.facebook.session_key = request.session['facebook_session_key']
-            request.facebook.uid = request.session['facebook_user_id']
+        if not self.internal:
+            if 'fb_sig_session_key' in request.GET and 'fb_sig_user' in request.GET:
+                request.facebook.session_key = request.session['facebook_session_key'] = request.GET['fb_sig_session_key']
+                request.facebook.uid = request.session['fb_sig_user'] = request.GET['fb_sig_user']
+            elif request.session.get('facebook_session_key', None) and request.session.get('facebook_user_id', None):
+                request.facebook.session_key = request.session['facebook_session_key']
+                request.facebook.uid = request.session['facebook_user_id']
 
     def process_response(self, request, response):
         if not self.internal and request.facebook.session_key and request.facebook.uid:
             request.session['facebook_session_key'] = request.facebook.session_key
             request.session['facebook_user_id'] = request.facebook.uid
+
+            if request.facebook.session_key_expires:
+                expiry = datetime.datetime.fromtimestamp(request.facebook.session_key_expires)
+                request.session.set_expiry(expiry)
 
         try:
             fb = request.facebook
@@ -234,4 +242,5 @@ class FacebookMiddleware(object):
             for k in fb_cookies:
                 response.set_cookie(self.api_key + '_' + k, fb_cookies[k], expires=expire_time )
             response.set_cookie(self.api_key , fb._hash_args(fb_cookies), expires=expire_time )
+
         return response
