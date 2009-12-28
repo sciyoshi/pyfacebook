@@ -1096,7 +1096,7 @@ class Facebook(object):
             return self
 
         # __init__ hard-codes into en_US
-        if not args.has_key('locale'):
+        if args is not None and not args.has_key('locale'):
             args['locale'] = self.locale
 
         # @author: houyr
