@@ -228,7 +228,7 @@ class FacebookMiddleware(object):
         except:
             return response
 
-        if not fb.is_session_from_cookie:
+        if fb.session_key_expires and not fb.is_session_from_cookie:
             # Make sure the browser accepts our session cookies inside an Iframe
             response['P3P'] = 'CP="NOI DSP COR NID ADMa OPTa OUR NOR"'
             fb_cookies = {
