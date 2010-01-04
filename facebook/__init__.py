@@ -118,7 +118,7 @@ METHODS = {
         'getPublicInfo': [
             ('application_id', int, ['optional']),
             ('application_api_key', str, ['optional']),
-            ('application_canvas_name ', str,['optional']),
+            ('application_canvas_name', str,['optional']),
         ],
     },
 
@@ -398,6 +398,7 @@ METHODS = {
     # pages methods
     'pages': {
         'getInfo': [
+            ('fields', list, [('default', ['page_id', 'name'])]),
             ('page_ids', list, ['optional']),
             ('uid', int, ['optional']),
         ],
@@ -494,7 +495,7 @@ METHODS = {
     'data': {
         'getCookies': [
             ('uid', int, []),
-            ('string', str, []),
+            ('string', str, ['optional']),
         ],
 
         'setCookie': [
@@ -553,7 +554,7 @@ METHODS = {
         'publish' : [
             ('message', str, ['optional']),
             ('attachment', json, ['optional']),
-            ('action_links', list, ['optional']),
+            ('action_links', json, ['optional']),
             ('target_id', str, ['optional']),
             ('uid', str, ['optional']),
         ],
@@ -856,6 +857,12 @@ class Facebook(object):
     in_canvas
         True if the current request is for a canvas page.
 
+    in_iframe
+        True if the current request is for an HTML page to embed in Facebook inside an iframe.
+
+    is_session_from_cookie
+        True if the current request session comes from a session cookie.
+
     in_profile_tab
         True if the current request is for a user's tab for your application.
 
@@ -918,6 +925,8 @@ class Facebook(object):
         self.uid = None
         self.page_id = None
         self.in_canvas = False
+        self.in_iframe = False
+        self.is_session_from_cookie = False
         self.in_profile_tab = False
         self.added = False
         self.app_name = app_name
@@ -1090,6 +1099,10 @@ class Facebook(object):
         if method is None:
             return self
 
+        # __init__ hard-codes into en_US
+        if args is not None and not args.has_key('locale'):
+            args['locale'] = self.locale
+
         # @author: houyr
         # fix for bug of UnicodeEncodeError
         post_data = self.unicode_urlencode(self._build_post_args(method, args))
@@ -1227,6 +1240,7 @@ class Facebook(object):
         if self.session_key and (self.uid or self.page_id):
             return True
 
+
         if request.method == 'POST':
             params = self.validate_signature(request.POST)
         else:
@@ -1253,16 +1267,21 @@ class Facebook(object):
             # first check if we are in django - to check cookies
             if hasattr(request, 'COOKIES'):
                 params = self.validate_cookie_signature(request.COOKIES)
+                self.is_session_from_cookie = True
             else:
                 # if not, then we might be on GoogleAppEngine, check their request object cookies
                 if hasattr(request,'cookies'):
                     params = self.validate_cookie_signature(request.cookies)
+                    self.is_session_from_cookie = True
 
         if not params:
             return False
 
         if params.get('in_canvas') == '1':
             self.in_canvas = True
+
+        if params.get('in_iframe') == '1':
+            self.in_iframe = True
 
         if params.get('in_profile_tab') == '1':
             self.in_profile_tab = True
@@ -1307,6 +1326,8 @@ class Facebook(object):
                 return False
         elif 'canvas_user' in params:
             self.uid = params['canvas_user']
+        elif 'uninstall' in params:
+            self.uid = params['user']
         else:
             return False
 
@@ -1341,23 +1362,28 @@ class Facebook(object):
         """
         Validate parameters passed by cookies, namely facebookconnect or js api.
         """
-        if not self.api_key in cookies.keys():
+
+        api_key = self.api_key
+        if api_key not in cookies:
             return None
 
-        sigkeys = []
-        params = dict()
-        for k in sorted(cookies.keys()):
-            if k.startswith(self.api_key+"_"):
-                sigkeys.append(k)
-                params[k.replace(self.api_key+"_","")] = cookies[k]
-
-
-        vals = ''.join(['%s=%s' % (x.replace(self.api_key+"_",""), cookies[x]) for x in sigkeys])
+        prefix = api_key + "_"
+       
+        params = {} 
+        vals = ''
+        for k in sorted(cookies):
+            if k.startswith(prefix):
+                key = k.replace(prefix,"")
+                value = cookies[k]
+                params[key] = value
+                vals += '%s=%s' % (key, value)
+                
         hasher = hashlib.md5(vals)
 
         hasher.update(self.secret_key)
         digest = hasher.hexdigest()
-        if digest == cookies[self.api_key]:
+        if digest == cookies[api_key]:
+            params['is_session_from_cookie'] = True
             return params
         else:
             return False

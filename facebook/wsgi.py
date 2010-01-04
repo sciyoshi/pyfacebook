@@ -83,7 +83,7 @@ class FacebookWSGIMiddleware(object):
 try:
     import pylons
     from pylons.controllers.util import redirect_to as pylons_redirect_to
-    from routes import url_to
+    from routes import url_for
 except ImportError:
     pass
 else:
@@ -116,7 +116,7 @@ else:
 
         def apps_url_for(self, *args, **kargs):
             """Like url_for, but starts with "http://apps.facebook.com"."""
-            return "http://apps.facebook.com" + url_to(*args, **kargs)
+            return "http://apps.facebook.com" + url_for(*args, **kargs)
 
 
     def create_pylons_facebook_middleware(app, config):
