@@ -328,6 +328,20 @@ METHODS = {
 
     # events methods
     'events': {
+        'cancel': [
+            ('eid', int, []),
+            ('cancel_message', str, ['optional']),
+         ],
+
+        'create': [
+            ('event_info', json, []),
+        ],
+
+        'edit': [
+            ('eid', int, []),
+            ('event_info', json, []),
+        ],
+
         'get': [
             ('uid', int, ['optional']),
             ('eids', list, ['optional']),
@@ -340,8 +354,15 @@ METHODS = {
             ('eid', int, []),
         ],
 
-        'create': [
-            ('event_info', json, []),
+        'invite': [
+            ('eid', int, []),
+            ('uids', list, []),
+            ('personal_message', str, ['optional']),
+        ],
+
+        'rsvp': [
+            ('eid', int, []),
+            ('rsvp_status', str, []),
         ],
     },
 
