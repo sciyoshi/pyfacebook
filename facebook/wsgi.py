@@ -23,25 +23,27 @@ __docformat__ = "restructuredtext"
 try:
     from paste.registry import StackedObjectProxy
     from webob.exc import _HTTPMove
-    from paste.util.quoting import strip_html, html_quote, no_quote
+    try:
+        from string import Template
+    except ImportError:
+        from webob.util.stringtemplate import Template
+    from webob import html_escape
+
 except ImportError:
     pass
 else:
     facebook = StackedObjectProxy(name="PyFacebook Facebook Connection")
 
-
     class CanvasRedirect(_HTTPMove):
-
         """This is for canvas redirects."""
 
         title = "See Other"
         code = 200
-        template = '<fb:redirect url="%(location)s" />'
+        html_template_obj = Template('<fb:redirect url="${location}" />')
 
-        def html(self, environ):
-            """ text/html representation of the exception """
-            body = self.make_body(environ, self.template, html_quote, no_quote)
-            return body
+        def html_body(self, environ):
+            return self.html_template_obj.substitute(location=self.detail)
+
 
 class FacebookWSGIMiddleware(object):
 
