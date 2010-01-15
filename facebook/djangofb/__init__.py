@@ -237,10 +237,12 @@ class FacebookMiddleware(object):
                 'user': fb.uid,
             }
 
-            expire_time = datetime.utcfromtimestamp(fb.session_key_expires)
+            expire_time = None
+            if fb.session_key_expires:
+                expire_time = datetime.utcfromtimestamp(fb.session_key_expires)
 
             for k in fb_cookies:
-                response.set_cookie(self.api_key + '_' + k, fb_cookies[k], expires=expire_time )
-            response.set_cookie(self.api_key , fb._hash_args(fb_cookies), expires=expire_time )
+                response.set_cookie(self.api_key + '_' + k, fb_cookies[k], expires=expire_time)
+            response.set_cookie(self.api_key , fb._hash_args(fb_cookies), expires=expire_time)
 
         return response
