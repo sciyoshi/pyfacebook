@@ -573,7 +573,16 @@ METHODS = {
             ('uid', int, ['optional']),
             ('post_id', int, ['optional']),
         ],
-    }
+    },
+
+    # livemessage methods (beta)
+    'livemessage': {
+        'send': [
+            ('recipient', int, []),
+            ('event_name', str, []),
+            ('message', str, []),  
+        ],
+    },
 }
 
 class Proxy(object):
