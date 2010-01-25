@@ -586,6 +586,104 @@ METHODS = {
             ('message', str, []),  
         ],
     },
+
+    # dashboard methods (beta)
+    'dashboard': {
+        # setting counters for a single user
+        'decrementCount': [
+            ('uid', int, []),
+        ],
+
+        'incrementCount': [
+            ('uid', int, []),
+        ],
+
+        'getCount': [
+            ('uid', int, []),
+        ],
+
+        'setCount': [
+            ('uid', int, []),
+            ('count', int, []),
+        ],
+
+        # setting counters for multiple users
+        'multiDecrementCount': [
+            ('uids', list, []),
+        ],
+
+        'multiIncrementCount': [
+            ('uids', list, []),
+        ],
+
+        'multiGetCount': [
+            ('uids', list, []),
+        ],
+
+        'multiSetCount': [
+            ('uids', list, []),
+        ],
+
+        # setting news for a single user
+        'addNews': [
+            ('uid', int, []),
+            ('news', json, []),
+            ('image', str, ['optional']),
+        ],
+
+        'getNews': [
+            ('uid', int, []),
+            ('news_ids', list, ['optional']),
+        ],
+
+        'clearNews': [
+            ('uid', int, []),
+            ('news_ids', list, ['optional']),
+        ],
+
+        # setting news for multiple users
+        'multiAddNews': [
+            ('uids', list, []),
+            ('news', json, []),
+            ('image', str, ['optional']),
+        ],
+
+        'multiGetNews': [
+            ('uids', json, []),
+        ],
+
+        'multiClearNews': [
+            ('uids', json, []),
+        ],
+
+        # setting application news for all users
+        'addGlobalNews': [
+            ('news', json, []),
+            ('image', str, ['optional']),
+        ],
+
+        'getGlobalNews': [
+            ('news_ids', list, ['optional']),
+        ],
+
+        'clearGlobalNews': [
+            ('news_ids', list, ['optional']),
+        ],
+
+        # user activity
+        'getActivity': [
+            ('activity_ids', list, ['optional']),
+        ],
+
+        'publishActivity': [
+            ('news', json, []),
+            ('image', str, ['optional']),
+        ],
+
+        'removeActivity': [
+            ('activity_ids', list, []),
+        ],
+    },
 }
 
 class Proxy(object):
