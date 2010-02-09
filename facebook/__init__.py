@@ -1283,7 +1283,11 @@ class Facebook(object):
             self.added = True
 
         if params.get('expires'):
-            self.session_key_expires = int(params['expires'])
+            # workaround for http://github.com/sciyoshi/pyfacebook/issues/#issue/26 -- RAN 20100123
+            try:
+                self.session_key_expires = int(params['expires'])
+            except ValueError:
+                self.session_key_expires = 0
 
         if 'locale' in params:
             self.locale = params['locale']
