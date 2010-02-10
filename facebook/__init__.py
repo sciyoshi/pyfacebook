@@ -343,6 +343,16 @@ METHODS = {
         'create': [
             ('event_info', json, []),
         ],
+
+        'edit': [
+            ('eid', int, []),
+            ('event_info', json, []),
+
+        'invite': [
+            ('eid', int, []),
+            ('uids', list, []),
+            ('personal_message', str, ['optional']),
+        ],
     },
 
     # update methods
@@ -1368,8 +1378,8 @@ class Facebook(object):
             return None
 
         prefix = api_key + "_"
-       
-        params = {} 
+
+        params = {}
         vals = ''
         for k in sorted(cookies):
             if k.startswith(prefix):
@@ -1377,7 +1387,7 @@ class Facebook(object):
                 value = cookies[k]
                 params[key] = value
                 vals += '%s=%s' % (key, value)
-                
+
         hasher = hashlib.md5(vals)
 
         hasher.update(self.secret_key)
