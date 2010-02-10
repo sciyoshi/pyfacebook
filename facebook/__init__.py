@@ -347,6 +347,7 @@ METHODS = {
         'edit': [
             ('eid', int, []),
             ('event_info', json, []),
+        ],
 
         'invite': [
             ('eid', int, []),
