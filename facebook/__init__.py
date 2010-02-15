@@ -1514,8 +1514,9 @@ class Facebook(object):
             if k.startswith(prefix):
                 key = k.replace(prefix,"")
                 value = cookies[k]
-                params[key] = value
-                vals += '%s=%s' % (key, value)
+                if value != 'None':
+                    params[key] = value
+                    vals += '%s=%s' % (key, value)
                 
         hasher = hashlib.md5(vals)
 
