@@ -1383,9 +1383,6 @@ class Facebook(object):
         if self.session_key and (self.uid or self.page_id):
             return True
 
-        if self.validate_iframe(request):
-            return True
-
         if request.method == 'POST':
             params = self.validate_signature(request.POST)
         else:
@@ -1420,7 +1417,9 @@ class Facebook(object):
                     self.is_session_from_cookie = True
 
         if not params:
-            return False
+            if self.validate_iframe(request):
+                assert False
+                return True
 
         if params.get('in_canvas') == '1':
             self.in_canvas = True
