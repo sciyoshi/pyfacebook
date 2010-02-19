@@ -60,6 +60,7 @@ from django.conf import settings
 import binascii
 import urlparse
 import mimetypes
+import time
 
 # try to use simplejson first, otherwise fallback to XML
 RESPONSE_FORMAT = 'JSON'
@@ -1369,23 +1370,17 @@ class Facebook(object):
 
     def validate_iframe(self, request):
         request_dict = request.POST if request.method == 'POST' else request.GET
-        #TODO time out
-        if 'appsig' not in request_dict:
+        if any(not request_dict.has_key(key) for key in ['userid','reqtime','appsig']):
             return False
-        for key in ['userid','reqtime','appsig']:
-            if not request_dict.has_key(key):
-                #return HttpResponse(Template('No key %s' % key).render(None))
-                return False
+        request_time = request_dict['reqtime']
+        time_now = int(time.time())
+        if time_now - int(request_time) > settings.FACEBOOK_IFRAME_VALIDATION_TIMEOUT:
+            return False
         userid = int(request_dict['userid'])
         self.uid = userid
-        request_time = request_dict['reqtime']
         app_sig = request_dict['appsig']
         digest = create_hmac("%s%s" % (str(userid),str(request_time)))
-        if digest != app_sig:
-            #return HttpResponse(Template('Digest wrong').render(None))
-            return False
-        return True
-
+        return digest == app_sig
 
     def validate_cookie_signature(self, cookies):
         """
