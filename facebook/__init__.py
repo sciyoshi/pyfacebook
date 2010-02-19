@@ -50,10 +50,13 @@ import struct
 import urllib
 import urllib2
 import httplib
+import hmac
+import hashlib
 try:
     import hashlib
 except ImportError:
     import md5 as hashlib
+from django.conf import settings
 import binascii
 import urlparse
 import mimetypes
@@ -103,12 +106,15 @@ except ImportError:
         res = urllib2.urlopen(url, data=data)
         return res.read()
 
-__all__ = ['Facebook']
+__all__ = ['Facebook','create_hmac']
 
 VERSION = '0.1'
 
 FACEBOOK_URL = 'http://api.facebook.com/restserver.php'
 FACEBOOK_SECURE_URL = 'https://api.facebook.com/restserver.php'
+
+def create_hmac(tbhashed):
+    return hmac.new(settings.SECRET_KEY, tbhashed, hashlib.sha1).hexdigest()
 
 class json(object): pass
 
@@ -1240,6 +1246,8 @@ class Facebook(object):
         if self.session_key and (self.uid or self.page_id):
             return True
 
+        if self.validate_iframe(request):
+            return True
 
         if request.method == 'POST':
             params = self.validate_signature(request.POST)
@@ -1342,6 +1350,7 @@ class Facebook(object):
         args = post.copy()
 
         if prefix not in args:
+            #HERE
             return None
 
         del args[prefix]
@@ -1357,6 +1366,26 @@ class Facebook(object):
             return args
         else:
             return None
+
+    def validate_iframe(self, request):
+        request_dict = request.POST if request.method == 'POST' else request.GET
+        #TODO time out
+        if 'appsig' not in request_dict:
+            return False
+        for key in ['userid','reqtime','appsig']:
+            if not request_dict.has_key(key):
+                #return HttpResponse(Template('No key %s' % key).render(None))
+                return False
+        userid = int(request_dict['userid'])
+        self.uid = userid
+        request_time = request_dict['reqtime']
+        app_sig = request_dict['appsig']
+        digest = create_hmac("%s%s" % (str(userid),str(request_time)))
+        if digest != app_sig:
+            #return HttpResponse(Template('Digest wrong').render(None))
+            return False
+        return True
+
 
     def validate_cookie_signature(self, cookies):
         """
