@@ -62,13 +62,16 @@ import mimetypes
 RESPONSE_FORMAT = 'JSON'
 try:
     import json as simplejson
-except ImportError:
+    simplejson.loads
+except (ImportError, AttributeError):
     try:
         import simplejson
-    except ImportError:
+        simplejson.loads
+    except (ImportError, AttributeError):
         try:
             from django.utils import simplejson
-        except ImportError:
+            simplejson.loads
+        except (ImportError, AttributeError):
             try:
                 import jsonlib as simplejson
                 simplejson.loads
