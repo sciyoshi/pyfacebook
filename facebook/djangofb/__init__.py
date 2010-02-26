@@ -219,7 +219,7 @@ class FacebookMiddleware(object):
             request.session['facebook_user_id'] = request.facebook.uid
 
             if request.facebook.session_key_expires:
-                expiry = datetime.datetime.fromtimestamp(request.facebook.session_key_expires)
+                expiry = datetime.datetime.utcfromtimestamp(request.facebook.session_key_expires)
                 request.session.set_expiry(expiry)
 
         try:
