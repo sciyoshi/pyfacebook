@@ -5,7 +5,6 @@ import facebook
 from django.http import HttpResponse, HttpResponseRedirect
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
-from datetime import datetime
 
 try:
     from threading import local
@@ -239,7 +238,7 @@ class FacebookMiddleware(object):
 
             expire_time = None
             if fb.session_key_expires:
-                expire_time = datetime.utcfromtimestamp(fb.session_key_expires)
+                expire_time = datetime.datetime.utcfromtimestamp(fb.session_key_expires)
 
             for k in fb_cookies:
                 response.set_cookie(self.api_key + '_' + k, fb_cookies[k], expires=expire_time)
