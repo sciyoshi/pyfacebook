@@ -24,7 +24,7 @@ class Facebook(facebook.Facebook):
 
         """
         if self.in_canvas:
-            return HttpResponse('<fb:redirect url="%s" />' % (url, ))
+            return HttpResponse('<fb:redirect url="%s" />' % (url,))
         elif re.search("^https?:\/\/([^\/]*\.)?facebook\.com(:\d+)?", url.lower()):
             return HttpResponse('<script type="text/javascript">\ntop.location.href = "%s";\n</script>' % url)
         else:
@@ -172,17 +172,21 @@ def require_add(next=None, internal=None, on_install=None):
 
 # try to preserve the argspecs
 try:
-    import decorator
+    import functools
+    from functools import wraps
 except ImportError:
     pass
 else:
-    def updater(f):
-        def updated(*args, **kwargs):
-            original = f(*args, **kwargs)
-            def newdecorator(view):
-                return decorator.new_wrapper(original(view), view)
-            return decorator.new_wrapper(newdecorator, original)
-        return decorator.new_wrapper(updated, f)
+    # Does not preserve arguments but the docstrings, function names etc
+    def updater(func):
+        @wraps(func)
+        def updated(view):
+            @wraps(view)
+            def anon(*args, **kwargs):
+                return view(*args, **kwargs)
+            return anon
+        return updated
+    
     require_login = updater(require_login)
     require_add = updater(require_add)
 
