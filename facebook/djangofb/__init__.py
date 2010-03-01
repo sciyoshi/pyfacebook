@@ -172,7 +172,6 @@ def require_add(next=None, internal=None, on_install=None):
 
 # try to preserve the argspecs
 try:
-    import functools
     from functools import wraps
 except ImportError:
     pass
