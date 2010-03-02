@@ -1294,8 +1294,8 @@ class Facebook(object):
         
         # fixed by Shuge Lee
         # http://github.com/sciyoshi/pyfacebook/issues#issue/34
-        expires = param.get('expires', 0)
-        if expires == None:
+        expires = params.get('expires', 0)
+        if expires == 'None':
             expires = 0
         else:
             expires = int(expires)
