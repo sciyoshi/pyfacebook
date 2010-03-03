@@ -223,9 +223,4 @@ class FacebookMiddleware(object):
                 expiry = datetime.datetime.fromtimestamp(request.facebook.session_key_expires)
                 request.session.set_expiry(expiry)
 
-        try:
-            fb = request.facebook
-        except:
-            return response
-
         return response
