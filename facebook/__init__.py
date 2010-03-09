@@ -313,6 +313,10 @@ METHODS = {
 
         'isAppAdded': [],
 
+        'isAppUser': [
+            ('uid', int, []),
+        ],
+
         'hasAppPermission': [
             ('ext_perm', str, []),
             ('uid', int, ['optional']),
