@@ -215,6 +215,9 @@ METHODS = {
         'query': [
             ('query', str, []),
         ],
+        'multiquery': [
+            ('queries', facebook.facebook.json, []),
+        ],
     },
 
     # friends methods
