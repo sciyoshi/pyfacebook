@@ -216,7 +216,7 @@ METHODS = {
             ('query', str, []),
         ],
         'multiquery': [
-            ('queries', facebook.facebook.json, []),
+            ('queries', json, []),
         ],
     },
 
