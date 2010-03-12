@@ -243,6 +243,8 @@ class FacebookMiddleware(object):
                 'session_key': fb.session_key,
                 'user': fb.uid,
             }
+            fb_cookies = dict((k, v) for k, v in fb_cookies.items()
+                              if v is not None)
 
             expire_time = None
             if fb.session_key_expires:
@@ -250,6 +252,7 @@ class FacebookMiddleware(object):
 
             for k in fb_cookies:
                 response.set_cookie(self.api_key + '_' + k, fb_cookies[k], expires=expire_time)
-            response.set_cookie(self.api_key , fb._hash_args(fb_cookies), expires=expire_time)
+            if fb_cookies:
+                response.set_cookie(self.api_key , fb._hash_args(fb_cookies), expires=expire_time)
 
         return response
