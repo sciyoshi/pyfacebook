@@ -773,6 +773,10 @@ class AuthProxy(AuthProxy):
             args['auth_token'] = self._client.auth_token
         except AttributeError:
             raise RuntimeError('Client does not have auth_token set.')
+        try:
+            args['generate_session_secret'] = self._client.generate_session_secret
+        except AttributeError:
+            pass
         result = self._client('%s.getSession' % self._name, args)
         self._client.session_key = result['session_key']
         self._client.uid = result['uid']
@@ -1005,7 +1009,7 @@ class Facebook(object):
 
     """
 
-    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None, internal=None, proxy=None, facebook_url=None, facebook_secure_url=None):
+    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None, internal=None, proxy=None, facebook_url=None, facebook_secure_url=None, generate_session_secret=0):
         """
         Initializes a new Facebook object which provides wrappers for the Facebook API.
 
@@ -1028,6 +1032,7 @@ class Facebook(object):
         self.session_key_expires = None
         self.auth_token = auth_token
         self.secret = None
+        self.generate_session_secret = generate_session_secret
         self.uid = None
         self.page_id = None
         self.in_canvas = False
