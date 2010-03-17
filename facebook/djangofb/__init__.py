@@ -5,7 +5,7 @@ import facebook
 from django.http import HttpResponse, HttpResponseRedirect
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
-from datetime import datetime
+#from datetime import datetime # by Marinho
 
 try:
     from threading import local
@@ -209,13 +209,15 @@ class FacebookMiddleware(object):
         if not self.internal:
             if 'fb_sig_session_key' in request.GET and 'fb_sig_user' in request.GET:
                 request.facebook.session_key = request.session['facebook_session_key'] = request.GET['fb_sig_session_key']
-                request.facebook.uid = request.session['fb_sig_user'] = request.GET['fb_sig_user']
+                request.facebook.uid = request.session['facebook_user_id'] = request.GET['fb_sig_user'] # by Marinho
             elif request.session.get('facebook_session_key', None) and request.session.get('facebook_user_id', None):
                 request.facebook.session_key = request.session['facebook_session_key']
                 request.facebook.uid = request.session['facebook_user_id']
 
     def process_response(self, request, response):
-        if not self.internal and request.facebook.session_key and request.facebook.uid:
+        #if not self.internal and request.facebook.session_key and request.facebook.uid:
+        # by Marinho
+        if not self.internal and getattr(request, 'facebook', None) and request.facebook.session_key and request.facebook.uid:
             request.session['facebook_session_key'] = request.facebook.session_key
             request.session['facebook_user_id'] = request.facebook.uid
 
@@ -239,7 +241,7 @@ class FacebookMiddleware(object):
 
             expire_time = None
             if fb.session_key_expires:
-                expire_time = datetime.utcfromtimestamp(fb.session_key_expires)
+                expire_time = datetime.datetime.utcfromtimestamp(fb.session_key_expires) # by Marinho
 
             for k in fb_cookies:
                 response.set_cookie(self.api_key + '_' + k, fb_cookies[k], expires=expire_time)

@@ -1237,9 +1237,8 @@ class Facebook(object):
         """
         self.in_canvas = (request.POST.get('fb_sig_in_canvas') == '1')
 
-        if self.session_key and (self.uid or self.page_id):
+        if not 'auth_token' in request.GET and self.session_key and (self.uid or self.page_id):
             return True
-
 
         if request.method == 'POST':
             params = self.validate_signature(request.POST)
@@ -1251,6 +1250,7 @@ class Facebook(object):
                 self.page_id = request.GET['fb_page_id']
 
             if 'auth_token' in request.GET:
+                self.added = True # added by Marinho
                 self.auth_token = request.GET['auth_token']
 
                 try:
