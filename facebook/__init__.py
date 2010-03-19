@@ -576,6 +576,51 @@ METHODS = {
     }
 }
 
+
+def __fixup_param(name, klass, options, param):
+    optional = 'optional' in options
+    default = [x[1] for x in options if isinstance(x, tuple) and x[0] == 'default']
+    if default:
+        default = default[0]
+    else:
+        default = None
+    if param is None:
+        if klass is list:
+            param = default[:]
+        else:
+            param = default
+    if klass is json and isinstance(param, (list, dict)):
+        param = simplejson.dumps(param)
+    return param
+
+def __generate_facebook_method(namespace, method_name, param_data):
+    # a required parameter doesn't have 'optional' in the options,
+    # and has no tuple option that starts with 'default'
+    required = [x for x in param_data
+            if 'optional' not in x[2]
+            and not [y for y in x[2] if isinstance(y, tuple) and y and y[0] == 'default']]
+
+    def facebook_method(self, *args, **kwargs):
+        params = {}
+        for i, arg in enumerate(args):
+            params[param_data[i][0]] = arg
+        params.update(kwargs)
+
+        for param in required:
+            if param[0] not in params:
+                raise TypeError("missing parameter %s" % param[0])
+
+        for name, klass, options in param_data:
+            value = __fixup_param(name, klass, options, params.get(name))
+
+        return self(method_name, params)
+
+    facebook_method.__name__ = method_name
+    facebook_method.__doc__ = "Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=%s.%s" % (namespace, method_name)
+
+    return facebook_method
+
+
 class Proxy(object):
     """Represents a "namespace" of Facebook API calls."""
 
@@ -599,48 +644,12 @@ def __generate_proxies():
     for namespace in METHODS:
         methods = {}
 
-        for method in METHODS[namespace]:
-            params = ['self']
-            body = ['args = {}']
+        for method, param_data in METHODS[namespace].iteritems():
+            methods[method] = __generate_facebook_method(namespace, method, param_data)
 
-            for param_name, param_type, param_options in METHODS[namespace][method]:
-                param = param_name
-
-                for option in param_options:
-                    if isinstance(option, tuple) and option[0] == 'default':
-                        if param_type == list:
-                            param = '%s=None' % param_name
-                            body.append('if %s is None: %s = %s' % (param_name, param_name, repr(option[1])))
-                        else:
-                            param = '%s=%s' % (param_name, repr(option[1]))
-
-                if param_type == json:
-                    # we only jsonify the argument if it's a list or a dict, for compatibility
-                    body.append('if isinstance(%s, list) or isinstance(%s, dict): %s = simplejson.dumps(%s)' % ((param_name,) * 4))
-
-                if 'optional' in param_options:
-                    param = '%s=None' % param_name
-                    body.append('if %s is not None: args[\'%s\'] = %s' % (param_name, param_name, param_name))
-                else:
-                    body.append('args[\'%s\'] = %s' % (param_name, param_name))
-
-                params.append(param)
-
-            # simple docstring to refer them to Facebook API docs
-            body.insert(0, '"""Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=%s.%s"""' % (namespace, method))
-
-            body.insert(0, 'def %s(%s):' % (method, ', '.join(params)))
-
-            body.append('return self(\'%s\', args)' % method)
-
-            exec('\n    '.join(body))
-
-            methods[method] = eval(method)
-
-        proxy = type('%sProxy' % namespace.title(), (Proxy, ), methods)
+        proxy = type('%sProxy' % namespace.title(), (Proxy,), methods)
 
         globals()[proxy.__name__] = proxy
-
 
 __generate_proxies()
 
