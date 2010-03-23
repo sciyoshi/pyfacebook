@@ -234,6 +234,11 @@ METHODS = {
         'getLists': [],
 
         'getAppUsers': [],
+        
+        'getMutualFriends': [
+            ('target_uid', int, []),
+            ('source_uid', int, ['optional']),
+        ],
     },
 
     # notifications methods
