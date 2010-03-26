@@ -751,13 +751,17 @@ def __generate_proxies():
 __generate_proxies()
 
 
+
+
+
 class FacebookError(Exception):
     """Exception class for errors received from Facebook."""
 
     def __init__(self, code, msg, args=None):
         self.code = code
         self.msg = msg
-        self.args = args
+        self.extra_args = args
+        Exception.__init__(self, code, msg, args)
 
     def __str__(self):
         return 'Error %s: %s' % (self.code, self.msg)
