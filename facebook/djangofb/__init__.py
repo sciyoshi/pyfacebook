@@ -209,7 +209,7 @@ class FacebookMiddleware(object):
         if not self.internal:
             if 'fb_sig_session_key' in request.GET and 'fb_sig_user' in request.GET:
                 request.facebook.session_key = request.session['facebook_session_key'] = request.GET['fb_sig_session_key']
-                request.facebook.uid = request.session['fb_sig_user'] = request.GET['fb_sig_user']
+                request.facebook.uid = request.session['facebook_user_id'] = request.GET['fb_sig_user']
             elif request.session.get('facebook_session_key', None) and request.session.get('facebook_user_id', None):
                 request.facebook.session_key = request.session['facebook_session_key']
                 request.facebook.uid = request.session['facebook_user_id']
