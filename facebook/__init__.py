@@ -676,8 +676,7 @@ METHODS = {
         ],
 
         'publishActivity': [
-            ('news', json, []),
-            ('image', str, ['optional']),
+            ('activity', json, []),
         ],
 
         'removeActivity': [
