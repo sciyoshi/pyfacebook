@@ -623,9 +623,9 @@ METHODS = {
 
         # setting news for a single user
         'addNews': [
-            ('uid', int, []),
             ('news', json, []),
             ('image', str, ['optional']),
+            ('uid', int, ['optional']),
         ],
 
         'getNews': [
