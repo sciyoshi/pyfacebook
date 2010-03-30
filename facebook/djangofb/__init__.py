@@ -84,7 +84,12 @@ def require_login(next=None, internal=None):
             elif not isinstance(next, str):
                 next = ''
 
-            if not fb.check_session(request):
+            try:
+                session_check = fb.check_session(request)
+            except ValueError:
+                session_check = False
+
+            if not session_check:
                 #If user has never logged in before, the get_login_url will redirect to the TOS page
                 return fb.redirect(fb.get_login_url(next=next))
 
