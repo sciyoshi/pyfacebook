@@ -141,6 +141,10 @@ METHODS = {
         'revokeAuthorization': [
             ('uid', int, ['optional']),
         ],
+        'revokeExtendedPermission': [
+            ('perm', str, []),
+            ('uid', int, ['optional']),
+        ],
     },
 
     # feed methods
