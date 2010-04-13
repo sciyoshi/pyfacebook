@@ -1425,22 +1425,24 @@ class Facebook(object):
 
         if not params:
             if self.validate_iframe(request):
-                assert False
                 return True
 
-        if params.get('in_canvas') == '1':
+        if not params:
+            return False
+
+        if 'in_canvas' in params and params.get('in_canvas') == '1':
             self.in_canvas = True
 
-        if params.get('in_iframe') == '1':
+        if 'in_iframe' in params and params.get('in_iframe') == '1':
             self.in_iframe = True
 
-        if params.get('in_profile_tab') == '1':
+        if 'in_profile_tab' in params and params.get('in_profile_tab') == '1':
             self.in_profile_tab = True
 
-        if params.get('added') == '1':
+        if 'added' in params and params.get('added') == '1':
             self.added = True
 
-        if params.get('expires'):
+        if 'expires' in params and params.get('expires'):
             # workaround for http://github.com/sciyoshi/pyfacebook/issues/#issue/26 -- RAN 20100123
             try:
                 self.session_key_expires = int(params['expires'])
