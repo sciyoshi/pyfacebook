@@ -1226,7 +1226,7 @@ class Facebook(object):
         webbrowser.open(self.get_ext_perm_url(ext_perm, popup=popup))
 
 
-    def check_session(self, request):
+    def check_session(self, request, params=None):
         """
         Checks the given Django HttpRequest for Facebook parameters such as
         POST variables or an auth token. If the session is valid, returns True
@@ -1240,28 +1240,28 @@ class Facebook(object):
         if self.session_key and (self.uid or self.page_id):
             return True
 
+        if not params:
+            if request.method == 'POST':
+                params = self.validate_signature(request.POST)
+            else:
+                if 'installed' in request.GET:
+                    self.added = True
 
-        if request.method == 'POST':
-            params = self.validate_signature(request.POST)
-        else:
-            if 'installed' in request.GET:
-                self.added = True
+                if 'fb_page_id' in request.GET:
+                    self.page_id = request.GET['fb_page_id']
 
-            if 'fb_page_id' in request.GET:
-                self.page_id = request.GET['fb_page_id']
+                if 'auth_token' in request.GET:
+                    self.auth_token = request.GET['auth_token']
 
-            if 'auth_token' in request.GET:
-                self.auth_token = request.GET['auth_token']
+                    try:
+                        self.auth.getSession()
+                    except FacebookError, e:
+                        self.auth_token = None
+                        return False
 
-                try:
-                    self.auth.getSession()
-                except FacebookError, e:
-                    self.auth_token = None
-                    return False
+                    return True
 
-                return True
-
-            params = self.validate_signature(request.GET)
+                params = self.validate_signature(request.GET)
 
         if not params:
             # first check if we are in django - to check cookies
