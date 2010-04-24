@@ -1,11 +1,15 @@
 import re
 import datetime
+import logging
 import facebook
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 try:
     from threading import local
@@ -42,7 +46,7 @@ def get_facebook_client():
         raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
 
-def require_login(next=None, internal=None):
+def require_login(next=None, internal=None, required_permissions=None):
     """
     Decorator for Django views that requires the user to be logged in.
     The FacebookMiddleware must be installed.
@@ -72,8 +76,10 @@ def require_login(next=None, internal=None):
             except:
                 raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
+
             if internal is None:
                 internal = request.facebook.internal
+
 
             if callable(next):
                 next = next(request.path)
@@ -84,11 +90,30 @@ def require_login(next=None, internal=None):
             elif not isinstance(next, str):
                 next = ''
 
-            if not fb.check_session(request):
-                #If user has never logged in before, the get_login_url will redirect to the TOS page
-                return fb.redirect(fb.get_login_url(next=next))
+            logged_in = fb.check_session(request)
+            logger.debug("logged_in: %s" % logged_in)
+            
+            if logged_in and required_permissions:
+                req_perms = set(required_permissions)
+                logger.debug("req_perms: %s" % req_perms)
+                perms = set() if fb.ext_perms is None \
+                    else set(fb.ext_perms.split(','))
+                logger.debug("perms: %s" % perms)
+                has_permissions = req_perms.issubset(perms)
+            else:
+                has_permissions = True
 
+            logger.debug("has_permissions: %s" % has_permissions)
+            if not (logged_in and has_permissions):
+                #If user has never logged in before, the get_login_url will redirect to the TOS page
+                return fb.redirect(
+                    fb.get_login_url(next=next,
+                        required_permissions=required_permissions)) 
+            logger.debug("app_name: %s" % fb.app_name)
+            logger.debug("internal: %s" % internal)
+            logger.debug("request.method: %s" % request.method)
             if internal and request.method == 'GET' and fb.app_name:
+                logger.debug("redirecting to %s%s" % (fb.get_app_url(), next))
                 return fb.redirect('%s%s' % (fb.get_app_url(), next))
 
             return view(request, *args, **kwargs)
