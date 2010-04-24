@@ -5,7 +5,6 @@ import facebook
 from django.http import HttpResponse, HttpResponseRedirect
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
-from datetime import datetime
 
 try:
     from threading import local
@@ -84,7 +83,12 @@ def require_login(next=None, internal=None):
             elif not isinstance(next, str):
                 next = ''
 
-            if not fb.check_session(request):
+            try:
+                session_check = fb.check_session(request)
+            except ValueError:
+                session_check = False
+
+            if not session_check:
                 #If user has never logged in before, the get_login_url will redirect to the TOS page
                 return fb.redirect(fb.get_login_url(next=next))
 
@@ -209,18 +213,43 @@ class FacebookMiddleware(object):
         if not self.internal:
             if 'fb_sig_session_key' in request.GET and 'fb_sig_user' in request.GET:
                 request.facebook.session_key = request.session['facebook_session_key'] = request.GET['fb_sig_session_key']
-                request.facebook.uid = request.session['fb_sig_user'] = request.GET['fb_sig_user']
+                request.facebook.uid = request.session['facebook_user_id'] = request.GET['fb_sig_user']
             elif request.session.get('facebook_session_key', None) and request.session.get('facebook_user_id', None):
                 request.facebook.session_key = request.session['facebook_session_key']
                 request.facebook.uid = request.session['facebook_user_id']
 
     def process_response(self, request, response):
-        if not self.internal and request.facebook.session_key and request.facebook.uid:
+        if not self.internal and hasattr(request, 'facebook') and request.facebook.session_key and request.facebook.uid:
             request.session['facebook_session_key'] = request.facebook.session_key
             request.session['facebook_user_id'] = request.facebook.uid
 
             if request.facebook.session_key_expires:
-                expiry = datetime.datetime.fromtimestamp(request.facebook.session_key_expires)
+                expiry = datetime.datetime.utcfromtimestamp(request.facebook.session_key_expires)
                 request.session.set_expiry(expiry)
+
+        try:
+            fb = request.facebook
+        except:
+            return response
+
+        if not fb.is_session_from_cookie:
+            # Make sure the browser accepts our session cookies inside an Iframe
+            response['P3P'] = 'CP="NOI DSP COR NID ADMa OPTa OUR NOR"'
+            fb_cookies = {
+                'expires': fb.session_key_expires,
+                'session_key': fb.session_key,
+                'user': fb.uid,
+            }
+            fb_cookies = dict((k, v) for k, v in fb_cookies.items()
+                              if v is not None)
+
+            expire_time = None
+            if fb.session_key_expires:
+                expire_time = datetime.datetime.utcfromtimestamp(fb.session_key_expires)
+
+            for k in fb_cookies:
+                response.set_cookie(self.api_key + '_' + k, fb_cookies[k], expires=expire_time)
+            if fb_cookies:
+                response.set_cookie(self.api_key , fb._hash_args(fb_cookies), expires=expire_time)
 
         return response
