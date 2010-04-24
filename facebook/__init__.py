@@ -1321,11 +1321,13 @@ class Facebook(object):
         return self.get_url('authorize', **args)
 
 
-    def get_login_url(self, next=None, popup=False, canvas=True):
+    def get_login_url(self, next=None, popup=False, canvas=True,
+                      required_permissions=None):
         """
         Returns the URL that the user should be redirected to in order to login.
 
         next -- the URL that Facebook should redirect to after login
+        required_permissions -- permission required by the application
 
         """
         args = {'api_key': self.api_key, 'v': '1.0'}
@@ -1339,6 +1341,9 @@ class Facebook(object):
         if popup is True:
             args['popup'] = 1
 
+        if required_permissions:
+            args['req_perms'] = ",".join(required_permissions)
+            
         if self.auth_token is not None:
             args['auth_token'] = self.auth_token
 
