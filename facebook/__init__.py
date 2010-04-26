@@ -1432,6 +1432,8 @@ class Facebook(object):
             if self.validate_iframe(request):
                 assert False
                 return True
+            else:
+                params = {}
 
         if params.get('in_canvas') == '1':
             self.in_canvas = True
