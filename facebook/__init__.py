@@ -1458,9 +1458,12 @@ class Facebook(object):
                 self.profile_update_time = int(params['profile_update_time'])
             except ValueError:
                 pass
-
+        
         if 'ext_perms' in params:
-            self.ext_perms = params['ext_perms']
+            if params['ext_params']:
+                self.ext_perms = params['ext_perms'].split(',')
+            else:
+                self.ext_perms = []
 
         if 'friends' in params:
             if params['friends']:

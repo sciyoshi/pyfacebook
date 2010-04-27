@@ -94,8 +94,7 @@ def require_login(next=None, internal=None, required_permissions=None):
 
             if session_check and required_permissions:
                 req_perms = set(required_permissions)
-                perms = set() if fb.ext_perms is None \
-                    else set(fb.ext_perms.split(','))
+                perms = set(fb.ext_perms)
                 has_permissions = req_perms.issubset(perms)
             else:
                 has_permissions = True
