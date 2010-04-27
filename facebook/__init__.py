@@ -1460,7 +1460,7 @@ class Facebook(object):
                 pass
         
         if 'ext_perms' in params:
-            if params['ext_params']:
+            if params['ext_perms']:
                 self.ext_perms = params['ext_perms'].split(',')
             else:
                 self.ext_perms = []
