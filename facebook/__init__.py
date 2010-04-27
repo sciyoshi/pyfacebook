@@ -1413,8 +1413,6 @@ class Facebook(object):
                     self.auth_token = None
                     return False
 
-                return True
-
             params = self.validate_signature(request.GET)
 
         if not params:
