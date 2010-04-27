@@ -1085,7 +1085,7 @@ class Facebook(object):
         self._friends = None
         self.locale = 'en_US'
         self.profile_update_time = None
-        self.ext_perms = None
+        self.ext_perms = []
         self.proxy = proxy
         if facebook_url is None:
             self.facebook_url = FACEBOOK_URL
