@@ -843,7 +843,7 @@ class FriendsProxy(FriendsProxy):
 class PhotosProxy(PhotosProxy):
     """Special proxy for facebook.photos."""
 
-    def upload(self, image, aid=None, caption=None, size=(604, 1024), filename=None, callback=None):
+    def upload(self, image, aid=None, caption=None, size=(604, 1024), filename=None, uid=None, callback=None):
         """Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=photos.upload
 
         size -- an optional size (width, height) to resize the image to before uploading. Resizes by default
@@ -856,6 +856,9 @@ class PhotosProxy(PhotosProxy):
 
         if caption is not None:
             args['caption'] = caption
+            
+        if uid is not None:
+            args['uid'] = uid
 
         args = self._client._build_post_args('facebook.photos.upload', self._client._add_session_args(args))
 
