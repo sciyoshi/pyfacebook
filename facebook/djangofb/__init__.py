@@ -206,6 +206,10 @@ class FacebookMiddleware(object):
     The Facebook object created can also be accessed from models for the
     current thread by using get_facebook_client().
 
+    callback_path can be a string or a callable.  Using a callable lets us
+    pass in something like lambda reverse('our_canvas_view') so we can follow
+    the DRY principle.
+
     """
 
     def __init__(self, api_key=None, secret_key=None, app_name=None, callback_path=None, internal=None):
@@ -219,7 +223,10 @@ class FacebookMiddleware(object):
             self.proxy = settings.HTTP_PROXY
 
     def process_request(self, request):
-        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=self.callback_path, internal=self.internal, proxy=self.proxy)
+        callback_path = self.callback_path
+        if callable(callback_path):
+            callback_path = callback_path()
+        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=callback_path, internal=self.internal, proxy=self.proxy)
         if not self.internal:
             if 'fb_sig_session_key' in request.GET and 'fb_sig_user' in request.GET:
                 request.facebook.session_key = request.session['facebook_session_key'] = request.GET['fb_sig_session_key']
