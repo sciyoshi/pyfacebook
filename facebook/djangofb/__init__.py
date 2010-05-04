@@ -222,6 +222,8 @@ class FacebookMiddleware(object):
     def process_response(self, request, response):
         #if not self.internal and request.facebook.session_key and request.facebook.uid:
         # by Marinho
+        request.facebook.session_key = request.facebook.session_key == 'None' and None or request.facebook.session_key
+        request.facebook.uid = request.facebook.uid == 'None' and None or request.facebook.uid
         if not self.internal and getattr(request, 'facebook', None) and request.facebook.session_key and request.facebook.uid:
             request.session['facebook_session_key'] = request.facebook.session_key
             request.session['facebook_user_id'] = request.facebook.uid
