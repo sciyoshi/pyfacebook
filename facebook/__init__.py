@@ -127,6 +127,12 @@ METHODS = {
         'getAllocation': [
             ('integration_point_name', str, []),
         ],
+        'getRestrictionInfo': [],
+        'setRestrictionInfo': [
+            ('format', str, []),
+            ('callback', str, ['optional']),
+            ('restriction_str', json, ['optional']),
+        ],
     },
 
     # auth methods
