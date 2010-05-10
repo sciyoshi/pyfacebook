@@ -539,6 +539,7 @@ METHODS = {
             ('text', str, []),
             ('xid', str, ['optional']),
             ('object_id', str, ['optional']),
+            ('publish_to_stream', bool, [('default', False)]),
         ],
     },
 
