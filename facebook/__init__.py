@@ -437,7 +437,7 @@ METHODS = {
             ('tag_text', str, [('default', '')]),
             ('x', float, [('default', 50)]),
             ('y', float, [('default', 50)]),
-            ('tags', str, ['optional']),
+            ('tags', json, ['optional']),
         ],
 
         'createAlbum': [
@@ -536,9 +536,9 @@ METHODS = {
     #comments methods
     'comments' : {
         'add' : [
+            ('text', str, []),
             ('xid', str, ['optional']),
             ('object_id', str, ['optional']),
-            ('text', str, []),
         ],
     },
 
