@@ -533,6 +533,15 @@ METHODS = {
         ],
     },
 
+    #comments methods
+    'comments' : {
+        'add' : [
+            ('xid', str, ['optional']),
+            ('object_id', str, ['optional']),
+            ('text', str, []),
+        ],
+    },
+
     #stream methods (beta)
     'stream' : {
         'addComment' : [
