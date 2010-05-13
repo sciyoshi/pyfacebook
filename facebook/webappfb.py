@@ -79,7 +79,7 @@ class FacebookRequestHandler(RequestHandler):
 
         if require_app or require_login:
             if not self.facebook.check_session(request):
-                self.redirect(self.facebook.get_login_url(next=request.path))
+                self.redirect(self.facebook.get_login_url(next=request.url))
                 self.redirecting = True
                 return
         elif check_session:
