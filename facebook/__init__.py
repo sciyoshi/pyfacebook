@@ -1618,7 +1618,7 @@ class Facebook(object):
                     self.page_id = request.GET['fb_page_id']
 
                 if 'auth_token' in request.GET:
-	                self.added = True # added by Marinho
+                    self.added = True # added by Marinho
                     self.auth_token = request.GET['auth_token']
 
                     try:
