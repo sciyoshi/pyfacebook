@@ -207,10 +207,10 @@ class FacebookMiddleware(object):
     def process_request(self, request):
         _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=self.callback_path, internal=self.internal, proxy=self.proxy)
         if not self.internal:
-            if 'fb_sig_session_key' in request.GET and 'fb_sig_user' in request.GET:
+            if 'fb_sig_session_key' in request.GET and ('fb_sig_user' in request.GET or 'fb_sig_canvas_user' in request.GET):
                 request.facebook.session_key = request.session['facebook_session_key'] = request.GET['fb_sig_session_key']
-                request.facebook.uid = request.session['fb_sig_user'] = request.GET['fb_sig_user']
-            elif request.session.get('facebook_session_key', None) and request.session.get('facebook_user_id', None):
+                request.facebook.uid = request.session['facebook_user_id'] = request.GET['fb_sig_user'] or request.GET['fb_sig_canvas_user']
+            elif int(request.GET.get('fb_sig_added', '1')) and request.session.get('facebook_session_key', None) and request.session.get('facebook_user_id', None):
                 request.facebook.session_key = request.session['facebook_session_key']
                 request.facebook.uid = request.session['facebook_user_id']
 
