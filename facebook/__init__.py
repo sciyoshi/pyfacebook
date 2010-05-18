@@ -134,6 +134,12 @@ METHODS = {
         'getAllocation': [
             ('integration_point_name', str, []),
         ],
+        'getRestrictionInfo': [],
+        'setRestrictionInfo': [
+            ('format', str, []),
+            ('callback', str, ['optional']),
+            ('restriction_str', json, ['optional']),
+        ],
     },
 
     # auth methods
@@ -245,6 +251,14 @@ METHODS = {
         'getMutualFriends': [
             ('target_uid', int, []),
             ('source_uid', int, ['optional']),
+        ],
+    },
+
+    'dashboard': {
+        'addNews': [
+            ('uid', int, []),
+            ('news', json, []),
+            ('image', str, ['optional']),
         ],
     },
 
@@ -548,6 +562,20 @@ METHODS = {
         ],
 
         'getUnconnectedFriendsCount': [
+        ],
+    },
+
+    'links': {
+        'post': [
+            ('url', str, []),
+            ('comment', str, []),
+            ('uid', int, []),
+            ('image', str, ['optional']),
+            ('callback', str, ['optional']),
+        ],
+        'preview': [
+            ('url', str, []),
+            ('callback', str, ['optional']),
         ],
     },
 
@@ -1057,6 +1085,7 @@ class Facebook(object):
     def _check_error(self, response):
         """Checks if the given Facebook response is an error, and then raises the appropriate exception."""
         if type(response) is dict and response.has_key('error_code'):
+            raise Exception(response) # XXX Marinho
             raise FacebookError(response['error_code'], response['error_msg'], response['request_args'])
 
 
@@ -1290,7 +1319,7 @@ class Facebook(object):
         """
         self.in_canvas = (request.POST.get('fb_sig_in_canvas') == '1')
 
-        if self.session_key and (self.uid or self.page_id):
+        if not 'auth_token' in request.GET and self.session_key and (self.uid or self.page_id):
             return True
 
         if request.method == 'POST':
@@ -1303,6 +1332,7 @@ class Facebook(object):
                 self.page_id = request.GET['fb_page_id']
 
             if 'auth_token' in request.GET:
+                self.added = True # added by Marinho
                 self.auth_token = request.GET['auth_token']
 
                 try:
@@ -1343,14 +1373,9 @@ class Facebook(object):
         if params.get('added') == '1':
             self.added = True
 
-        # fixed by Shuge Lee
-        # http://github.com/sciyoshi/pyfacebook/issues#issue/34
-        expires = params.get('expires', 0)
-        if expires == 'None':
-            expires = 0
-        else:
-            expires = int(expires)
-        self.session_key_expires = expires
+        if params.get('expires'):
+            # Marinho Brandao - fixing problem with no session
+            self.session_key_expires = params.get('expires', '').isdigit() and int(params['expires']) or 0 
 
         if 'locale' in params:
             self.locale = params['locale']
@@ -1402,7 +1427,6 @@ class Facebook(object):
         args = post.copy()
 
         if prefix not in args:
-            #HERE
             return None
 
         del args[prefix]
