@@ -2,9 +2,24 @@
 
 PyFacebook is a Python client library for the Facebook API.
 
+Samuel Cormier-Iijima (sciyoshi@gmail.com)
+Niran Babalola (iamniran@gmail.com)
+Shannon -jj Behrens (jjinux@gmail.com)
+David B. Edelstein (David.B.Edelstein@gmail.com)
+Max Battcher (max.battcher@gmail.com)
+Rohan Deshpande (rohan.deshpande@gmail.com)
+Matthew Stevens (matthew.stevens@gmail.com)
+Sandro Turriate (sandro.turriate@gmail.com)
+Benjamin Zimmerman (benjamin.zimmerman@gmail.com)
+Gisle Aas (gisle.aas@gmail.com)
+Rand Bradley (rand.bradley@gmail.com)
+Luke Worth (luke.worth@gmail.com)
+Andreas Cederström (andreas@klydd.se)
+Samuel Hoffstaetter (samuel@hoffstaetter.com)
+Andreas Ehn (ehn@a8n.se)
 Lee Li <shuge.lee@gmail.com>
 
-http://github.com/shuge/pyfacebook/
+http://github.com/sciyoshi/pyfacebook/
 
 == Usage ==
 
@@ -24,7 +39,7 @@ See the developer wiki for more information.
 
 == License ==
 
-Copyright (c) 2010, Lee Li
+Copyright (c) 2008, Samuel Cormier-Iijima
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

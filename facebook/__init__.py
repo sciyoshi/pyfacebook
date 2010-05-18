@@ -361,6 +361,20 @@ METHODS = {
 
     # events methods
     'events': {
+        'cancel': [
+            ('eid', int, []),
+            ('cancel_message', str, ['optional']),
+         ],
+
+        'create': [
+            ('event_info', json, []),
+        ],
+
+        'edit': [
+            ('eid', int, []),
+            ('event_info', json, []),
+        ],
+
         'get': [
             ('uid', int, ['optional']),
             ('eids', list, ['optional']),
@@ -373,8 +387,15 @@ METHODS = {
             ('eid', int, []),
         ],
 
-        'create': [
-            ('event_info', json, []),
+        'invite': [
+            ('eid', int, []),
+            ('uids', list, []),
+            ('personal_message', str, ['optional']),
+        ],
+
+        'rsvp': [
+            ('eid', int, []),
+            ('rsvp_status', str, []),
         ],
 
         'edit': [
@@ -640,6 +661,35 @@ METHODS = {
         'removeLike' : [
             ('uid', int, ['optional']),
             ('post_id', int, ['optional']),
+        ],
+    },
+
+    # comments methods (beta)
+    'comments' : {
+        'add': [
+            # One of xid and object_is is required. Can this be expressed?
+            ('xid', str, ['optional']),
+            ('object_id', str, ['optional']),
+            # text should be required
+            ('text', str, ['optional']),
+            ('uid', int, ['optional']),
+            ('title', str, ['optional']),
+            ('url', str, ['optional']),
+            ('publish_to_stream', bool, ['optional']),
+        ],
+
+        'remove': [
+            # One of xid and object_is is required. Can this be expressed?
+            ('xid', str, ['optional']),
+            ('object_id', str, ['optional']),
+            # comment_id should be required
+            ('comment_id', str, ['optional']),
+        ],
+
+        'get': [
+            # One of xid and object_is is required. Can this be expressed?
+            ('xid', str, ['optional']),
+            ('object_id', str, ['optional']),
         ],
     }
 }
