@@ -71,7 +71,6 @@ def require_login(next=None, internal=None, required_permissions=None):
             except:
                 raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
-
             if internal is None:
                 internal = request.facebook.internal
 
@@ -239,6 +238,14 @@ class FacebookMiddleware(object):
                 request.facebook.uid = request.session['facebook_user_id']
 
     def process_response(self, request, response):
+        
+        # Don't assume that request.facebook exists
+        # - it's not necessarily true that all process_requests will have been called
+        try:
+            request.facebook
+        except AttributeError:
+            return response
+        
         if not self.internal and hasattr(request, 'facebook') and request.facebook.session_key and request.facebook.uid:
             request.session['facebook_session_key'] = request.facebook.session_key
             request.session['facebook_user_id'] = request.facebook.uid
