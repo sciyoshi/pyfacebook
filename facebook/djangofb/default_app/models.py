@@ -25,7 +25,7 @@ class User(models.Model):
     # TODO: The data that you want to store for each user would go here.
     # For this sample, we let users let people know their favorite progamming
     # language, in the spirit of Extended Info.
-    language = models.CharField(maxlength=64, default='Python')
+    language = models.CharField(max_length=64, default='Python')
 
     # Add the custom manager
     objects = UserManager()

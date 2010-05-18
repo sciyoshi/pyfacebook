@@ -223,26 +223,4 @@ class FacebookMiddleware(object):
                 expiry = datetime.datetime.fromtimestamp(request.facebook.session_key_expires)
                 request.session.set_expiry(expiry)
 
-        try:
-            fb = request.facebook
-        except:
-            return response
-
-        if not fb.is_session_from_cookie:
-            # Make sure the browser accepts our session cookies inside an Iframe
-            response['P3P'] = 'CP="NOI DSP COR NID ADMa OPTa OUR NOR"'
-            fb_cookies = {
-                'expires': fb.session_key_expires,
-                'session_key': fb.session_key,
-                'user': fb.uid,
-            }
-
-            expire_time = None
-            if fb.session_key_expires:
-                expire_time = datetime.utcfromtimestamp(fb.session_key_expires)
-
-            for k in fb_cookies:
-                response.set_cookie(self.api_key + '_' + k, fb_cookies[k], expires=expire_time)
-            response.set_cookie(self.api_key , fb._hash_args(fb_cookies), expires=expire_time)
-
         return response
