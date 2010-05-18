@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(name='pyfacebook',
       version='0.3',
@@ -8,5 +8,8 @@ setup(name='pyfacebook',
       author='Samuel Cormier-Iijima',
       author_email='sciyoshi@gmail.com',
       url='http://code.google.com/p/pyfacebook',
-      packages=['facebook', 'facebook.djangofb',
-          'facebook.djangofb.default_app'])
+      packages=['facebook',
+                'facebook.djangofb',
+                'facebook.djangofb.default_app'],
+      test_suite='tests',
+      tests_require=['MiniMock'])

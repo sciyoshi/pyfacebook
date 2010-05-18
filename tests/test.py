@@ -3,7 +3,12 @@ import sys
 import os
 import facebook
 import urllib2
-import md5
+try:
+    from hashlib import md5
+    md5_constructor = md5
+except ImportError:
+    import md5
+    md5_constructor = md5.new
 try:
     import simplejson
 except ImportError:
@@ -54,19 +59,19 @@ class pyfacebook_UnitTests(unittest.TestCase):
         
     def test2(self):
         args = {"arg1":"a","arg2":"b","arg3":"c"}
-        hasher = md5.new(''.join(['%s=%s' % (x, args[x]) for x in sorted(args.keys())]))
+        hasher = md5_constructor(''.join(['%s=%s' % (x, args[x]) for x in sorted(args.keys())]))
         hasher.update("acdnj")
         f = facebook.Facebook(api_key="abcdf", secret_key="acdnj")
         f.login = self.login
         digest = f._hash_args(args)
         self.assertEquals(hasher.hexdigest(),digest)
-        hasher = md5.new(''.join(['%s=%s' % (x, args[x]) for x in sorted(args.keys())]))
+        hasher = md5_constructor(''.join(['%s=%s' % (x, args[x]) for x in sorted(args.keys())]))
         hasher.update("klmn")
         # trunk code has error hash.updated instead of hash.update
         digest = f._hash_args(args,secret="klmn")
         self.assertEquals(hasher.hexdigest(),digest)
         
-        hasher = md5.new(''.join(['%s=%s' % (x, args[x]) for x in sorted(args.keys())]))
+        hasher = md5_constructor(''.join(['%s=%s' % (x, args[x]) for x in sorted(args.keys())]))
         f.secret = "klmn"
         hasher.update(f.secret)
         # trunk code has error hash.updated instead of hash.update
