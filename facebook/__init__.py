@@ -65,14 +65,17 @@ import time
 # try to use simplejson first, otherwise fallback to XML
 RESPONSE_FORMAT = 'JSON'
 try:
-    import simplejson
-except ImportError:
+    import json as simplejson
+    simplejson.loads
+except (ImportError, AttributeError):
     try:
-        import json as simplejson
-    except ImportError:
+        import simplejson
+        simplejson.loads
+    except (ImportError, AttributeError):
         try:
             from django.utils import simplejson
-        except ImportError:
+            simplejson.loads
+        except (ImportError, AttributeError):
             try:
                 import jsonlib as simplejson
                 simplejson.loads
@@ -145,6 +148,10 @@ METHODS = {
     # auth methods
     'auth': {
         'revokeAuthorization': [
+            ('uid', int, ['optional']),
+        ],
+        'revokeExtendedPermission': [
+            ('perm', str, []),
             ('uid', int, ['optional']),
         ],
     },
@@ -251,14 +258,6 @@ METHODS = {
         'getMutualFriends': [
             ('target_uid', int, []),
             ('source_uid', int, ['optional']),
-        ],
-    },
-
-    'dashboard': {
-        'addNews': [
-            ('uid', int, []),
-            ('news', json, []),
-            ('image', str, ['optional']),
         ],
     },
 
@@ -600,16 +599,6 @@ METHODS = {
         ],
     },
 
-    #comments methods
-    'comments' : {
-        'add' : [
-            ('text', str, []),
-            ('xid', str, ['optional']),
-            ('object_id', str, ['optional']),
-            ('publish_to_stream', bool, [('default', False)]),
-        ],
-    },
-
     #stream methods (beta)
     'stream' : {
         'addComment' : [
@@ -664,18 +653,124 @@ METHODS = {
         ],
     },
 
+    # livemessage methods (beta)
+    'livemessage': {
+        'send': [
+            ('recipient', int, []),
+            ('event_name', str, []),
+            ('message', str, []),  
+        ],
+    },
+
+    # dashboard methods (beta)
+    'dashboard': {
+        # setting counters for a single user
+        'decrementCount': [
+            ('uid', int, []),
+        ],
+
+        'incrementCount': [
+            ('uid', int, []),
+        ],
+
+        'getCount': [
+            ('uid', int, []),
+        ],
+
+        'setCount': [
+            ('uid', int, []),
+            ('count', int, []),
+        ],
+
+        # setting counters for multiple users
+        'multiDecrementCount': [
+            ('uids', list, []),
+        ],
+
+        'multiIncrementCount': [
+            ('uids', list, []),
+        ],
+
+        'multiGetCount': [
+            ('uids', list, []),
+        ],
+
+        'multiSetCount': [
+            ('uids', list, []),
+        ],
+
+        # setting news for a single user
+        'addNews': [
+            ('news', json, []),
+            ('image', str, ['optional']),
+            ('uid', int, ['optional']),
+        ],
+
+        'getNews': [
+            ('uid', int, []),
+            ('news_ids', list, ['optional']),
+        ],
+
+        'clearNews': [
+            ('uid', int, []),
+            ('news_ids', list, ['optional']),
+        ],
+
+        # setting news for multiple users
+        'multiAddNews': [
+            ('uids', list, []),
+            ('news', json, []),
+            ('image', str, ['optional']),
+        ],
+
+        'multiGetNews': [
+            ('uids', json, []),
+        ],
+
+        'multiClearNews': [
+            ('uids', json, []),
+        ],
+
+        # setting application news for all users
+        'addGlobalNews': [
+            ('news', json, []),
+            ('image', str, ['optional']),
+        ],
+
+        'getGlobalNews': [
+            ('news_ids', list, ['optional']),
+        ],
+
+        'clearGlobalNews': [
+            ('news_ids', list, ['optional']),
+        ],
+
+        # user activity
+        'getActivity': [
+            ('activity_ids', list, ['optional']),
+        ],
+
+        'publishActivity': [
+            ('activity', json, []),
+        ],
+
+        'removeActivity': [
+            ('activity_ids', list, []),
+        ],
+    },
+
     # comments methods (beta)
     'comments' : {
         'add': [
+            # text should be after xid/object_id, but is required
+            ('text', str, []),
             # One of xid and object_is is required. Can this be expressed?
             ('xid', str, ['optional']),
             ('object_id', str, ['optional']),
-            # text should be required
-            ('text', str, ['optional']),
             ('uid', int, ['optional']),
             ('title', str, ['optional']),
             ('url', str, ['optional']),
-            ('publish_to_stream', bool, ['optional']),
+            ('publish_to_stream', bool, [('default', False)]),
         ],
 
         'remove': [
@@ -798,6 +893,10 @@ class AuthProxy(AuthProxy):
             args['auth_token'] = self._client.auth_token
         except AttributeError:
             raise RuntimeError('Client does not have auth_token set.')
+        try:
+            args['generate_session_secret'] = self._client.generate_session_secret
+        except AttributeError:
+            pass
         result = self._client('%s.getSession' % self._name, args)
         self._client.session_key = result['session_key']
         self._client.uid = result['uid']
@@ -1033,7 +1132,7 @@ class Facebook(object):
 
     """
 
-    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None, internal=None, proxy=None, facebook_url=None, facebook_secure_url=None):
+    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None, internal=None, proxy=None, facebook_url=None, facebook_secure_url=None, generate_session_secret=0):
         """
         Initializes a new Facebook object which provides wrappers for the Facebook API.
 
@@ -1056,6 +1155,7 @@ class Facebook(object):
         self.session_key_expires = None
         self.auth_token = auth_token
         self.secret = None
+        self.generate_session_secret = generate_session_secret
         self.uid = None
         self.page_id = None
         self.in_canvas = False
@@ -1069,7 +1169,7 @@ class Facebook(object):
         self._friends = None
         self.locale = 'en_US'
         self.profile_update_time = None
-        self.ext_perms = None
+        self.ext_perms = []
         self.proxy = proxy
         if facebook_url is None:
             self.facebook_url = FACEBOOK_URL
@@ -1306,11 +1406,13 @@ class Facebook(object):
         return self.get_url('authorize', **args)
 
 
-    def get_login_url(self, next=None, popup=False, canvas=True):
+    def get_login_url(self, next=None, popup=False, canvas=True,
+                      required_permissions=None):
         """
         Returns the URL that the user should be redirected to in order to login.
 
         next -- the URL that Facebook should redirect to after login
+        required_permissions -- permission required by the application
 
         """
         args = {'api_key': self.api_key, 'v': '1.0'}
@@ -1324,6 +1426,9 @@ class Facebook(object):
         if popup is True:
             args['popup'] = 1
 
+        if required_permissions:
+            args['req_perms'] = ",".join(required_permissions)
+            
         if self.auth_token is not None:
             args['auth_token'] = self.auth_token
 
@@ -1412,19 +1517,21 @@ class Facebook(object):
 
         if not params:
             if self.validate_iframe(request):
-                assert False
                 return True
 
-        if params.get('in_canvas') == '1':
+        if not params:
+            return False
+
+        if 'in_canvas' in params and params.get('in_canvas') == '1':
             self.in_canvas = True
 
-        if params.get('in_iframe') == '1':
+        if 'in_iframe' in params and params.get('in_iframe') == '1':
             self.in_iframe = True
 
-        if params.get('in_profile_tab') == '1':
+        if 'in_profile_tab' in params and params.get('in_profile_tab') == '1':
             self.in_profile_tab = True
 
-        if params.get('added') == '1':
+        if 'added' in params and params.get('added') == '1':
             self.added = True
 
         if params.get('expires'):
@@ -1439,9 +1546,12 @@ class Facebook(object):
                 self.profile_update_time = int(params['profile_update_time'])
             except ValueError:
                 pass
-
+        
         if 'ext_perms' in params:
-            self.ext_perms = params['ext_perms']
+            if params['ext_perms']:
+                self.ext_perms = params['ext_perms'].split(',')
+            else:
+                self.ext_perms = []
 
         if 'friends' in params:
             if params['friends']:
@@ -1528,9 +1638,10 @@ class Facebook(object):
             if k.startswith(prefix):
                 key = k.replace(prefix,"")
                 value = cookies[k]
-                params[key] = value
-                vals += '%s=%s' % (key, value)
-
+                if value != 'None':
+                    params[key] = value
+                    vals += '%s=%s' % (key, value)
+                
         hasher = hashlib.md5(vals)
 
         hasher.update(self.secret_key)

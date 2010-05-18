@@ -5,7 +5,6 @@ import facebook
 from django.http import HttpResponse, HttpResponseRedirect
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
-#from datetime import datetime # by Marinho
 
 try:
     from threading import local
@@ -42,7 +41,7 @@ def get_facebook_client():
         raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
 
-def require_login(next=None, internal=None):
+def require_login(next=None, internal=None, required_permissions=None):
     """
     Decorator for Django views that requires the user to be logged in.
     The FacebookMiddleware must be installed.
@@ -72,6 +71,7 @@ def require_login(next=None, internal=None):
             except:
                 raise ImproperlyConfigured('Make sure you have the Facebook middleware installed.')
 
+
             if internal is None:
                 internal = request.facebook.internal
 
@@ -84,17 +84,26 @@ def require_login(next=None, internal=None):
             elif not isinstance(next, str):
                 next = ''
 
+            if internal and request.method == 'GET' and fb.app_name:
+                next = "%s%s" % (fb.get_app_url(), next)
+
             try:
                 session_check = fb.check_session(request)
             except ValueError:
                 session_check = False
 
-            if not session_check:
-                #If user has never logged in before, the get_login_url will redirect to the TOS page
-                return fb.redirect(fb.get_login_url(next=next))
+            if session_check and required_permissions:
+                req_perms = set(required_permissions)
+                perms = set(fb.ext_perms)
+                has_permissions = req_perms.issubset(perms)
+            else:
+                has_permissions = True
 
-            if internal and request.method == 'GET' and fb.app_name:
-                return fb.redirect('%s%s' % (fb.get_app_url(), next))
+            if not (session_check and has_permissions):
+                #If user has never logged in before, the get_login_url will redirect to the TOS page
+                return fb.redirect(
+                    fb.get_login_url(next=next,
+                        required_permissions=required_permissions)) 
 
             return view(request, *args, **kwargs)
         newview.next = next
@@ -200,6 +209,10 @@ class FacebookMiddleware(object):
     The Facebook object created can also be accessed from models for the
     current thread by using get_facebook_client().
 
+    callback_path can be a string or a callable.  Using a callable lets us
+    pass in something like lambda reverse('our_canvas_view') so we can follow
+    the DRY principle.
+
     """
 
     def __init__(self, api_key=None, secret_key=None, app_name=None, callback_path=None, internal=None):
@@ -213,7 +226,10 @@ class FacebookMiddleware(object):
             self.proxy = settings.HTTP_PROXY
 
     def process_request(self, request):
-        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=self.callback_path, internal=self.internal, proxy=self.proxy)
+        callback_path = self.callback_path
+        if callable(callback_path):
+            callback_path = callback_path()
+        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=callback_path, internal=self.internal, proxy=self.proxy)
         if not self.internal:
             if 'fb_sig_session_key' in request.GET and ('fb_sig_user' in request.GET or 'fb_sig_canvas_user' in request.GET):
                 request.facebook.session_key = request.session['facebook_session_key'] = request.GET['fb_sig_session_key']
@@ -223,16 +239,12 @@ class FacebookMiddleware(object):
                 request.facebook.uid = request.session['facebook_user_id']
 
     def process_response(self, request, response):
-        #if not self.internal and request.facebook.session_key and request.facebook.uid:
-        # by Marinho
-        request.facebook.session_key = request.facebook.session_key == 'None' and None or request.facebook.session_key
-        request.facebook.uid = request.facebook.uid == 'None' and None or request.facebook.uid
-        if not self.internal and getattr(request, 'facebook', None) and request.facebook.session_key and request.facebook.uid:
+        if not self.internal and hasattr(request, 'facebook') and request.facebook.session_key and request.facebook.uid:
             request.session['facebook_session_key'] = request.facebook.session_key
             request.session['facebook_user_id'] = request.facebook.uid
 
             if request.facebook.session_key_expires:
-                expiry = datetime.datetime.fromtimestamp(request.facebook.session_key_expires)
+                expiry = datetime.datetime.utcfromtimestamp(request.facebook.session_key_expires)
                 request.session.set_expiry(expiry)
 
         try:
@@ -248,13 +260,16 @@ class FacebookMiddleware(object):
                 'session_key': fb.session_key,
                 'user': fb.uid,
             }
+            fb_cookies = dict((k, v) for k, v in fb_cookies.items()
+                              if v is not None)
 
             expire_time = None
             if fb.session_key_expires:
-                expire_time = datetime.datetime.utcfromtimestamp(fb.session_key_expires) # by Marinho
+                expire_time = datetime.datetime.utcfromtimestamp(fb.session_key_expires)
 
             for k in fb_cookies:
                 response.set_cookie(self.api_key + '_' + k, fb_cookies[k], expires=expire_time)
-            response.set_cookie(self.api_key , fb._hash_args(fb_cookies), expires=expire_time)
+            if fb_cookies:
+                response.set_cookie(self.api_key , fb._hash_args(fb_cookies), expires=expire_time)
 
         return response
