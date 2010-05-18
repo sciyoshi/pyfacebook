@@ -1238,7 +1238,6 @@ class Facebook(object):
     def _check_error(self, response):
         """Checks if the given Facebook response is an error, and then raises the appropriate exception."""
         if type(response) is dict and response.has_key('error_code'):
-            raise Exception(response) # XXX Marinho
             raise FacebookError(response['error_code'], response['error_msg'], response['request_args'])
 
 
