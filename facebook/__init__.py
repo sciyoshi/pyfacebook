@@ -1518,6 +1518,8 @@ class Facebook(object):
         if not params:
             if self.validate_iframe(request):
                 return True
+            else:
+                params = {}
 
         if not params:
             return False
