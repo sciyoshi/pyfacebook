@@ -51,7 +51,6 @@ import urllib
 import urllib2
 import httplib
 import hmac
-import hashlib
 try:
     import hashlib
 except ImportError:
@@ -60,7 +59,6 @@ from django.conf import settings
 import binascii
 import urlparse
 import mimetypes
-import time
 
 # try to use simplejson first, otherwise fallback to XML
 RESPONSE_FORMAT = 'JSON'
@@ -112,7 +110,7 @@ except ImportError:
 
 __all__ = ['Facebook','create_hmac']
 
-VERSION = '0.1'
+VERSION = '2.0'
 
 FACEBOOK_URL = 'http://api.facebook.com/restserver.php'
 FACEBOOK_VIDEO_URL = 'http://api-video.facebook.com/restserver.php'
@@ -805,7 +803,7 @@ def __fixup_param(name, klass, options, param):
     else:
         default = None
     if param is None:
-        if klass is list:
+        if klass is list and default:
             param = default[:]
         else:
             param = default
@@ -831,7 +829,8 @@ def __generate_facebook_method(namespace, method_name, param_data):
                 raise TypeError("missing parameter %s" % param[0])
 
         for name, klass, options in param_data:
-            value = __fixup_param(name, klass, options, params.get(name))
+            if name in params:
+                params[name] = __fixup_param(name, klass, options, params[name])
 
         return self(method_name, params)
 
@@ -1187,6 +1186,10 @@ class Facebook(object):
     api_key
         Your API key, as set in the constructor.
 
+    app_id
+        Your application id, as set in the constructor or fetched from
+        fb_sig_app_id request parameter.
+
     app_name
         Your application's name, i.e. the APP_NAME in http://apps.facebook.com/APP_NAME/ if
         this is for an internal web application. Optional, but useful for automatic redirects
@@ -1233,6 +1236,15 @@ class Facebook(object):
     locale
         The user's locale. Default: 'en_US'
 
+    oauth2:
+        Whether to use the new OAuth 2.0 authentication mechanism.  Default: False
+
+    oauth2_token:
+        The current OAuth 2.0 token.
+    
+    oauth2_token_expires:
+        The UNIX time when the OAuth 2.0 token expires (seconds).
+
     page_id
         Set to the page_id of the current page (if any)
 
@@ -1260,7 +1272,10 @@ class Facebook(object):
 
     """
 
-    def __init__(self, api_key, secret_key, auth_token=None, app_name=None, callback_path=None, internal=None, proxy=None, facebook_url=None, facebook_secure_url=None, generate_session_secret=0):
+    def __init__(self, api_key, secret_key, auth_token=None, app_name=None,
+                 callback_path=None, internal=None, proxy=None,
+                 facebook_url=None, facebook_secure_url=None,
+                 generate_session_secret=0, app_id=None, oauth2=False):
         """
         Initializes a new Facebook object which provides wrappers for the Facebook API.
 
@@ -1279,6 +1294,10 @@ class Facebook(object):
         """
         self.api_key = api_key
         self.secret_key = secret_key
+        self.app_id = app_id
+        self.oauth2 = oauth2
+        self.oauth2_token = None
+        self.oauth2_token_expires = None
         self.session_key = None
         self.session_key_expires = None
         self.auth_token = auth_token
@@ -1383,10 +1402,13 @@ class Facebook(object):
                 args[arg[0]] = str(arg[1]).lower()
 
         args['method'] = method
-        args['api_key'] = self.api_key
-        args['v'] = '1.0'
         args['format'] = RESPONSE_FORMAT
-        args['sig'] = self._hash_args(args)
+        if self.oauth2 and self.oauth2_token:
+            args['access_token'] = self.oauth2_token
+        else:
+            args['api_key'] = self.api_key
+            args['v'] = '1.0'
+            args['sig'] = self._hash_args(args)
 
         return args
 
@@ -1401,6 +1423,7 @@ class Facebook(object):
             #some calls don't need a session anymore. this might be better done in the markup
             #raise RuntimeError('Session key not set. Make sure auth.getSession has been called.')
 
+        # TODO no need for session_key in oauth2?
         args['session_key'] = self.session_key
         args['call_id'] = str(int(time.time() * 1000))
 
@@ -1472,18 +1495,51 @@ class Facebook(object):
         if self.proxy:
             proxy_handler = urllib2.ProxyHandler(self.proxy)
             opener = urllib2.build_opener(proxy_handler)
-            if secure:
+            if self.oauth2 or secure:
                 response = opener.open(self.facebook_secure_url, post_data).read()
             else:
                 response = opener.open(self.facebook_url, post_data).read()
         else:
-            if secure:
+            if self.oauth2 or secure:
                 response = urlread(self.facebook_secure_url, post_data)
             else:
                 response = urlread(self.facebook_url, post_data)
 
+        print args
+        print response
+
         return self._parse_response(response, method)
 
+
+    def get_oauth2_token(self, code, next, required_permissions=None):
+        """
+        We've called authorize, and received a code, now we need to convert
+        this to an access_token
+        
+        """
+        args = {
+            'client_id': self.app_id,
+            'client_secret': self.secret_key,
+            'redirect_uri': next,
+            'code': code
+        }
+
+        if required_permissions:
+            args['scope'] = ",".join(required_permissions)
+
+        url = self.get_graph_url('oauth/access_token', **args)
+        
+        if self.proxy:
+            proxy_handler = urllib2.ProxyHandler(self.proxy)
+            opener = urllib2.build_opener(proxy_handler)
+            response = opener.open(url).read()
+        else:
+            response = urlread(url)
+
+        result = urlparse.parse_qs(response)
+        self.oauth2_token = result['access_token'][0]
+        self.oauth2_token_expires = time.time() + int(result['expires'][0])
+        
 
     # URL helpers
     def get_url(self, page, **args):
@@ -1501,6 +1557,14 @@ class Facebook(object):
 
         """
         return 'http://apps.facebook.com/%s/%s' % (self.app_name, path)
+
+
+    def get_graph_url(self, path='', **args):
+        """
+        Returns the URL for the graph API with the supplied path and parameters
+
+        """
+        return 'https://graph.facebook.com/%s?%s' % (path, urllib.urlencode(args))
 
 
     def get_add_url(self, next=None):
@@ -1542,24 +1606,38 @@ class Facebook(object):
         required_permissions -- permission required by the application
 
         """
-        args = {'api_key': self.api_key, 'v': '1.0'}
+        if self.oauth2:
+            args = {
+                'client_id': self.app_id,
+                'redirect_uri': next
+            }
 
-        if next is not None:
-            args['next'] = next
-
-        if canvas is True:
-            args['canvas'] = 1
-
-        if popup is True:
-            args['popup'] = 1
-
-        if required_permissions:
-            args['req_perms'] = ",".join(required_permissions)
+            if required_permissions:
+                args['scope'] = ",".join(required_permissions)
             
-        if self.auth_token is not None:
-            args['auth_token'] = self.auth_token
-
-        return self.get_url('login', **args)
+            if popup:
+                args['display'] = 'popup'
+            
+            return self.get_graph_url('oauth/authorize', **args)
+        else:
+            args = {'api_key': self.api_key, 'v': '1.0'}
+    
+            if next is not None:
+                args['next'] = next
+    
+            if canvas is True:
+                args['canvas'] = 1
+    
+            if popup is True:
+                args['popup'] = 1
+    
+            if required_permissions:
+                args['req_perms'] = ",".join(required_permissions)
+                
+            if self.auth_token is not None:
+                args['auth_token'] = self.auth_token
+    
+            return self.get_url('login', **args)
 
 
     def login(self, popup=False):
@@ -1687,6 +1765,10 @@ class Facebook(object):
                 self._friends = params['friends'].split(',')
             else:
                 self._friends = []
+
+        # If app_id is not set explicitly, pick it up from the param
+        if not self.app_id and 'app_id' in params:
+            self.app_id = params['app_id']
 
         if 'session_key' in params:
             self.session_key = params['session_key']

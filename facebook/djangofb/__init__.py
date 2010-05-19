@@ -1,4 +1,5 @@
 import re
+import time
 import datetime
 import facebook
 
@@ -91,10 +92,53 @@ def require_login(next=None, internal=None, required_permissions=None):
             except ValueError:
                 session_check = False
 
+            # If using OAuth 2.0 and we've been accepted by the user
+            if fb.oauth2 and fb.added:
+                # See if we've got this user's token
+                if 'oauth2_token' in request.session:
+                    fb.oauth2_token = request.session['oauth2_token']
+                    fb.oauth2_token_expires = request.session['oauth2_token_expires']
+                    session_check = True
+                    
+                    print 'in session %s' % fb.added
+                    print fb.oauth2_token
+                    print '%s < %s' % (fb.oauth2_token_expires, time.time())
+
+                # We've got a code from a login, convert it to a access_token
+                elif 'code' in request.GET:
+                    fb.get_oauth2_token(request.GET['code'], next=next,
+                        required_permissions=required_permissions)
+
+                    print 'from code %s' % fb.added
+                    print fb.oauth2_token
+                    print '%s < %s' % (fb.oauth2_token_expires, time.time())
+
+                    request.session['oauth2_token'] = fb.oauth2_token
+                    request.session['oauth2_token_expires'] = fb.oauth2_token_expires
+                    session_check = True
+
+                # No sign of a token
+                else:
+                    session_check = False
+
+                # Got a token, but it's expired
+                if 'oauth2_token_expires' in request.session and fb.oauth2_token_expires < time.time():
+                    del request.session['oauth2_token']
+                    del request.session['oauth2_token_expires']
+                    session_check = False
+
             if session_check and required_permissions:
                 req_perms = set(required_permissions)
                 perms = set(fb.ext_perms)
                 has_permissions = req_perms.issubset(perms)
+
+                # Let's do a real check, because ext_perms doesn't give full picture
+                if not has_permissions:
+                    fql_perms = fb.fql.query('select %s from permissions where uid=%s' % (",".join(required_permissions), fb.uid))[0]
+                    for permission, allowed in fql_perms.items():
+                        if allowed == 1:
+                            perms.add(permission)
+                    has_permissions = req_perms.issubset(perms)
             else:
                 has_permissions = True
 
@@ -185,20 +229,18 @@ def require_add(next=None, internal=None, on_install=None):
 
 # try to preserve the argspecs
 try:
-    from functools import wraps
+    import decorator
 except ImportError:
     pass
 else:
-    # Does not preserve arguments but the docstrings, function names etc
-    def updater(func):
-        @wraps(func)
-        def updated(view):
-            @wraps(view)
-            def anon(*args, **kwargs):
-                return view(*args, **kwargs)
-            return anon
-        return updated
-    
+    # Can this be done with functools.wraps, but maintaining kwargs?
+    def updater(f):
+        def updated(*args, **kwargs):
+            original = f(*args, **kwargs)
+            def newdecorator(view):
+                return decorator.new_wrapper(original(view), view)
+            return decorator.new_wrapper(newdecorator, original)
+        return decorator.new_wrapper(updated, f)
     require_login = updater(require_login)
     require_add = updater(require_add)
 
@@ -214,12 +256,14 @@ class FacebookMiddleware(object):
 
     """
 
-    def __init__(self, api_key=None, secret_key=None, app_name=None, callback_path=None, internal=None):
+    def __init__(self, api_key=None, secret_key=None, app_name=None,
+                 callback_path=None, internal=None, oauth2=None):
         self.api_key = api_key or settings.FACEBOOK_API_KEY
         self.secret_key = secret_key or settings.FACEBOOK_SECRET_KEY
         self.app_name = app_name or getattr(settings, 'FACEBOOK_APP_NAME', None)
         self.callback_path = callback_path or getattr(settings, 'FACEBOOK_CALLBACK_PATH', None)
         self.internal = internal or getattr(settings, 'FACEBOOK_INTERNAL', True)
+        self.oauth2 = oauth2 or getattr(settings, 'FACEBOOK_OAUTH2', False)
         self.proxy = None
         if getattr(settings, 'USE_HTTP_PROXY', False):
             self.proxy = settings.HTTP_PROXY
@@ -228,7 +272,7 @@ class FacebookMiddleware(object):
         callback_path = self.callback_path
         if callable(callback_path):
             callback_path = callback_path()
-        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=callback_path, internal=self.internal, proxy=self.proxy)
+        _thread_locals.facebook = request.facebook = Facebook(self.api_key, self.secret_key, app_name=self.app_name, callback_path=callback_path, internal=self.internal, proxy=self.proxy, oauth2=self.oauth2)
         if not self.internal:
             if 'fb_sig_session_key' in request.GET and ('fb_sig_user' in request.GET or 'fb_sig_canvas_user' in request.GET):
                 request.facebook.session_key = request.session['facebook_session_key'] = request.GET['fb_sig_session_key']
