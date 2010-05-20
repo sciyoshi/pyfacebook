@@ -286,22 +286,17 @@ class FacebookMiddleware(object):
         # Don't assume that request.facebook exists
         # - it's not necessarily true that all process_requests will have been called
         try:
-            request.facebook
+            fb = request.facebook
         except AttributeError:
             return response
         
-        if not self.internal and hasattr(request, 'facebook') and request.facebook.session_key and request.facebook.uid:
-            request.session['facebook_session_key'] = request.facebook.session_key
-            request.session['facebook_user_id'] = request.facebook.uid
+        if not self.internal and fb.session_key and fb.uid:
+            request.session['facebook_session_key'] = fb.session_key
+            request.session['facebook_user_id'] = fb.uid
 
-            if request.facebook.session_key_expires:
-                expiry = datetime.datetime.utcfromtimestamp(request.facebook.session_key_expires)
+            if fb.session_key_expires:
+                expiry = datetime.datetime.utcfromtimestamp(fb.session_key_expires)
                 request.session.set_expiry(expiry)
-
-        try:
-            fb = request.facebook
-        except:
-            return response
 
         if not fb.is_session_from_cookie:
             # Make sure the browser accepts our session cookies inside an Iframe
