@@ -1423,8 +1423,8 @@ class Facebook(object):
             #some calls don't need a session anymore. this might be better done in the markup
             #raise RuntimeError('Session key not set. Make sure auth.getSession has been called.')
 
-        # TODO no need for session_key in oauth2?
-        args['session_key'] = self.session_key
+        if not self.oauth2 or not self.oauth2_token:
+            args['session_key'] = self.session_key
         args['call_id'] = str(int(time.time() * 1000))
 
         return args
@@ -1505,13 +1505,10 @@ class Facebook(object):
             else:
                 response = urlread(self.facebook_url, post_data)
 
-        print args
-        print response
-
         return self._parse_response(response, method)
 
 
-    def get_oauth2_token(self, code, next, required_permissions=None):
+    def oauth2_access_token(self, code, next, required_permissions=None):
         """
         We've called authorize, and received a code, now we need to convert
         this to an access_token
@@ -1527,6 +1524,7 @@ class Facebook(object):
         if required_permissions:
             args['scope'] = ",".join(required_permissions)
 
+        # TODO see if immediate param works as per OAuth 2.0 spec?
         url = self.get_graph_url('oauth/access_token', **args)
         
         if self.proxy:
@@ -1613,7 +1611,7 @@ class Facebook(object):
             }
 
             if required_permissions:
-                args['scope'] = ",".join(required_permissions)
+                args['scope'] = required_permissions
             
             if popup:
                 args['display'] = 'popup'
