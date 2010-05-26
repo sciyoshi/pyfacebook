@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='pyfacebook',
-      version='2.0',
+      version='1.0a1',
       description='Python Client Library for the Facebook API',
       author='Samuel Cormier-Iijima',
       author_email='sciyoshi@gmail.com',
