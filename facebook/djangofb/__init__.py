@@ -146,6 +146,7 @@ class Facebook(facebook.Facebook):
             request.session['oauth2_token_expires'] = self.oauth2_token_expires
 
             return True
+        # else: 'error_reason' in request.GET
         
         return False
 
@@ -279,13 +280,18 @@ def _strip_code(path):
     Restore the path to the original redirect_uri without the code parameter.
     
     """
-    begin = path.find('&code')
-    if begin == -1:
-        begin = path.index('?code')
-    end = path.find('&', begin+1)
-    if end == -1:
-        end = len(path)
-    return path[:begin] + path[end:]
+    try:
+        begin = path.find('&code')
+        if begin == -1:
+            begin = path.index('?code')
+        end = path.find('&', begin+1)
+        if end == -1:
+            end = len(path)
+        return path[:begin] + path[end:]
+    except ValueError:
+        # no code, probably failed to authenticate
+        # TODO strip error_reason instead here?
+        return path
 
 
 def require_login(next=None, internal=None, required_permissions=None):
