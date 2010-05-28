@@ -937,6 +937,11 @@ class Facebook(object):
         self.profile_update_time = None
         self.ext_perms = None
         self.proxy = proxy
+
+        self.is_oauth = False
+        self.oauth_token = None
+
+        
         if facebook_url is None:
             self.facebook_url = FACEBOOK_URL
         else:
@@ -1107,18 +1112,35 @@ class Facebook(object):
         # fix for bug of UnicodeEncodeError
         post_data = self.unicode_urlencode(self._build_post_args(method, args))
 
-        if self.proxy:
-            proxy_handler = urllib2.ProxyHandler(self.proxy)
-            opener = urllib2.build_opener(proxy_handler)
-            if secure:
-                response = opener.open(self.facebook_secure_url, post_data).read()
+        print ('is aouth', self.is_oauth)
+        if self.is_oauth:
+
+            
+            url = 'https://api.facebook.com/method/' + method + '?access_token=' + self.oauth_token + '&' + post_data
+
+            print(url)
+
+            if self.proxy:
+                proxy_handler = urllib2.ProxyHandler(self.proxy)
+                opener = urllib2.build_opener(proxy_handler)
+                
+                response = opener.open(url).read()
+
             else:
-                response = opener.open(self.facebook_url, post_data).read()
+                response = urlread(url)
         else:
-            if secure:
-                response = urlread(self.facebook_secure_url, post_data)
+            if self.proxy:
+                proxy_handler = urllib2.ProxyHandler(self.proxy)
+                opener = urllib2.build_opener(proxy_handler)
+                if secure:
+                    response = opener.open(self.facebook_secure_url, post_data).read()
+                else:
+                    response = opener.open(self.facebook_url, post_data).read()
             else:
-                response = urlread(self.facebook_url, post_data)
+                if secure:
+                    response = urlread(self.facebook_secure_url, post_data)
+                else:
+                    response = urlread(self.facebook_url, post_data)
 
         return self._parse_response(response, method)
 
@@ -1264,15 +1286,31 @@ class Facebook(object):
             params = self.validate_signature(request.GET)
 
         if not params:
+            cookies = None
+            
             # first check if we are in django - to check cookies
             if hasattr(request, 'COOKIES'):
-                params = self.validate_cookie_signature(request.COOKIES)
-                self.is_session_from_cookie = True
+                cookies = request.COOKIES
             else:
-                # if not, then we might be on GoogleAppEngine, check their request object cookies
-                if hasattr(request,'cookies'):
-                    params = self.validate_cookie_signature(request.cookies)
+                if hasattr(request, 'cookies'):
+                    cookies = request.cookies
+
+            if cookies:
+
+                print('cookies exexex')
+
+                params = self.validate_oauth_cookie_signature(cookies)
+
+                if params:
+                    self.is_oauth = True
+                    self.oauth_token = params['access_token']
+                else:
+                    params = self.validate_cookie_signature(cookies)
                     self.is_session_from_cookie = True
+                    
+                print(params)
+                   
+
 
         if not params:
             return False
@@ -1316,6 +1354,8 @@ class Facebook(object):
                 self.uid = params['user']
             elif 'page_id' in params:
                 self.page_id = params['page_id']
+            elif 'uid' in params:
+                self.uid = params['uid']
             else:
                 return False
         elif 'profile_session_key' in params:
@@ -1354,15 +1394,38 @@ class Facebook(object):
         hash = self._hash_args(args)
 
         if hash == post[prefix]:
+
             return args
-        else:
-            return None
+        #return args
+    
+        return None
+
+    def validate_oauth_cookie_signature(self, cookies):
+        
+        print('trying new auth')
+        
+        # auth via new fb oauth stuff
+        # cookie like fbs_<application_id>
+
+        for k in sorted(cookies):
+            # hack: we should be passing in the app id to get this
+            if k.startswith('fbs_'):
+                # value like
+                # "access_token=104302089510310%7C2.HYYLow1Vlib0s_sJSAESjw__.3600.1275037200-100000214342553%7CtC1aolM22Lauj_dZhYnv_tF2CK4.&base_domain=yaycy.com&expires=1275037200&secret=FvIHkbAFwEy_0sueRk2ZYQ__&session_key=2.HYYoow1Vlib0s_sJSAESjw__.3600.1275037200-100000214342553&sig=7bb035a0411be7aa801964ae34416f28&uid=100000214342553"
+
+                values = cookies[k].split('&')
+                params = dict([part.split('=') for part in values])
+
+                return params
+
+        return None
+
 
     def validate_cookie_signature(self, cookies):
         """
         Validate parameters passed by cookies, namely facebookconnect or js api.
         """
-
+        
         api_key = self.api_key
         if api_key not in cookies:
             return None
