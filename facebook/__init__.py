@@ -110,7 +110,7 @@ except ImportError:
 
 __all__ = ['Facebook','create_hmac']
 
-VERSION = '1.0a1'
+VERSION = '1.0a2'
 
 FACEBOOK_URL = 'http://api.facebook.com/restserver.php'
 FACEBOOK_VIDEO_URL = 'http://api-video.facebook.com/restserver.php'
@@ -1716,14 +1716,26 @@ class Facebook(object):
                 params = self.validate_signature(request.GET)
 
         if not params:
+            cookies = None
+            
             # first check if we are in django - to check cookies
             if hasattr(request, 'COOKIES'):
-                params = self.validate_cookie_signature(request.COOKIES)
-                self.is_session_from_cookie = True
+                cookies = request.COOKIES
             else:
-                # if not, then we might be on GoogleAppEngine, check their request object cookies
-                if hasattr(request,'cookies'):
-                    params = self.validate_cookie_signature(request.cookies)
+                if hasattr(request, 'cookies'):
+                    cookies = request.cookies
+
+            if cookies:
+
+                print('cookies exexex')
+
+                params = self.validate_oauth_cookie_signature(cookies)
+
+                if params:
+                    self.is_oauth = True
+                    self.oauth_token = params['access_token']
+                else:
+                    params = self.validate_cookie_signature(cookies)
                     self.is_session_from_cookie = True
 
         if not params:
@@ -1782,6 +1794,8 @@ class Facebook(object):
                 self.uid = params['user']
             elif 'page_id' in params:
                 self.page_id = params['page_id']
+            elif 'uid' in params:
+                self.uid = params['uid']
             else:
                 return False
         elif 'profile_session_key' in params:
@@ -1799,6 +1813,13 @@ class Facebook(object):
 
         return True
 
+    def validate_oauth_session(self, session_json):
+        session = simplejson.loads(session_json)
+        sig = session.pop('sig')
+        hash = self._hash_args(session)
+        if hash == sig:
+            return session
+        return None
 
     def validate_signature(self, post, prefix='fb_sig', timeout=None):
         """
@@ -1838,11 +1859,23 @@ class Facebook(object):
         digest = create_hmac("%s%s" % (str(userid),str(request_time)))
         return digest == app_sig
 
+    def validate_oauth_cookie_signature(self, cookies):
+        cookie_name = 'fbs_%s' % self.app_id
+        if cookie_name in cookies:
+            # value like
+            # "access_token=104302089510310%7C2.HYYLow1Vlib0s_sJSAESjw__.3600.1275037200-100000214342553%7CtC1aolM22Lauj_dZhYnv_tF2CK4.&base_domain=yaycy.com&expires=1275037200&secret=FvIHkbAFwEy_0sueRk2ZYQ__&session_key=2.HYYoow1Vlib0s_sJSAESjw__.3600.1275037200-100000214342553&sig=7bb035a0411be7aa801964ae34416f28&uid=100000214342553"
+            params = dict([part.split('=') for part in cookies[cookie_name]])
+            sig = params.pop('sig')
+            hash = self._hash_args(params)
+            if hash == sig:
+                return params
+        return None
+
     def validate_cookie_signature(self, cookies):
         """
         Validate parameters passed by cookies, namely facebookconnect or js api.
         """
-
+        
         api_key = self.api_key
         if api_key not in cookies:
             return None
