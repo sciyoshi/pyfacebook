@@ -142,6 +142,16 @@ METHODS = {
             ('callback', str, ['optional']),
             ('restriction_str', json, ['optional']),
         ],
+        # Some methods don't work with access_tokens, the signed option forces
+        # use of the secret_key signature (avoids error 15 and, sometimes, 8) 
+        'getAppProperties': [
+            ('properties', list, []),
+            'signed'
+        ],
+        'setAppProperties': [
+            ('properties', json, []),
+            'signed'
+        ],
     },
 
     # auth methods
@@ -812,6 +822,13 @@ def __fixup_param(name, klass, options, param):
     return param
 
 def __generate_facebook_method(namespace, method_name, param_data):
+    # This method-level option forces the method to be signed rather than using
+    # the access_token
+    signed = False
+    if 'signed' in param_data:
+        signed = True
+        param_data.remove('signed')
+
     # a required parameter doesn't have 'optional' in the options,
     # and has no tuple option that starts with 'default'
     required = [x for x in param_data
@@ -832,7 +849,7 @@ def __generate_facebook_method(namespace, method_name, param_data):
             if name in params:
                 params[name] = __fixup_param(name, klass, options, params[name])
 
-        return self(method_name, params)
+        return self(method_name, params, signed=signed)
 
     facebook_method.__name__ = method_name
     facebook_method.__doc__ = "Facebook API call. See http://developers.facebook.com/documentation.php?v=1.0&method=%s.%s" % (namespace, method_name)
@@ -847,7 +864,7 @@ class Proxy(object):
         self._client = client
         self._name = name
 
-    def __call__(self, method=None, args=None, add_session_args=True):
+    def __call__(self, method=None, args=None, add_session_args=True, signed=False):
         # for Django templates
         if method is None:
             return self
@@ -855,7 +872,7 @@ class Proxy(object):
         if add_session_args:
             self._client._add_session_args(args)
 
-        return self._client('%s.%s' % (self._name, method), args)
+        return self._client('%s.%s' % (self._name, method), args, signed=signed)
 
 
 # generate the Facebook proxies
@@ -1396,7 +1413,7 @@ class Facebook(object):
             raise FacebookError(response['error_code'], response['error_msg'], response['request_args'])
 
 
-    def _build_post_args(self, method, args=None):
+    def _build_post_args(self, method, args=None, signed=False):
         """Adds to args parameters that are necessary for every call to the API."""
         if args is None:
             args = {}
@@ -1411,7 +1428,7 @@ class Facebook(object):
 
         args['method'] = method
         args['format'] = RESPONSE_FORMAT
-        if self.oauth2 and self.oauth2_token:
+        if not signed and self.oauth2 and self.oauth2_token:
             args['access_token'] = self.oauth2_token
         else:
             args['api_key'] = self.api_key
@@ -1485,7 +1502,7 @@ class Facebook(object):
                           for k, v in params])
 
 
-    def __call__(self, method=None, args=None, secure=False):
+    def __call__(self, method=None, args=None, secure=False, signed=False):
         """Make a call to Facebook's REST server."""
         # for Django templates, if this object is called without any arguments
         # return the object itself
@@ -1498,7 +1515,7 @@ class Facebook(object):
 
         # @author: houyr
         # fix for bug of UnicodeEncodeError
-        post_data = self.unicode_urlencode(self._build_post_args(method, args))
+        post_data = self.unicode_urlencode(self._build_post_args(method, args, signed))
 
         if self.proxy:
             proxy_handler = urllib2.ProxyHandler(self.proxy)
@@ -1726,8 +1743,6 @@ class Facebook(object):
                     cookies = request.cookies
 
             if cookies:
-
-                print('cookies exexex')
 
                 params = self.validate_oauth_cookie_signature(cookies)
 

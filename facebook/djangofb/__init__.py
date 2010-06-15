@@ -114,9 +114,6 @@ class Facebook(facebook.Facebook):
         """
         has_permissions = False
 
-        print 'req %s' % required_permissions
-        print 'add %s' % additional_permissions
-
         req_perms = set(required_permissions.split(','))
 
         if 'oauth2_extended_permissions' in request.session:
@@ -136,9 +133,6 @@ class Facebook(facebook.Facebook):
             # functionality (or simply for better caching)
             if additional_permissions:
                 perms_query += ',' + additional_permissions
-                
-            print 'query %s' % perms_query
-            print 'query %s' % self.uid
                 
             perms_results = self.fql.query('select %s from permissions where uid=%s'
                                            % (perms_query, self.uid))[0]
@@ -215,13 +209,7 @@ def require_oauth(redirect_path=None, keep_state=True, in_canvas=True,
 
             fb = _check_middleware(request)
 
-            print 'require oauth'
-            print request.POST 
-            print request.GET
-
             valid_token = fb.oauth2_check_session(request)
-
-            print 'valid %s' % valid_token
 
             if required_permissions:
                 has_permissions = fb.oauth2_check_permissions(
@@ -246,7 +234,6 @@ def require_oauth(redirect_path=None, keep_state=True, in_canvas=True,
 
                 url = fb.get_login_url(next=redirect_uri,
                         required_permissions=required_permissions)
-                print url
                 
                 return fb.redirect(url) 
 
@@ -293,8 +280,6 @@ def process_oauth(restore_state=True, in_canvas=True):
             # Work out what the original redirect_uri value was
             redirect_uri = fb.url_for(_strip_code(request.get_full_path()))
 
-            print 'redirect %s' % redirect_uri
-
             if fb.oauth2_process_code(request, redirect_uri):
                 if restore_state:
                     state = request.GET['state']
@@ -302,7 +287,6 @@ def process_oauth(restore_state=True, in_canvas=True):
                         state = restore_state(state)
                     else:
                         state = fb.url_for(state)
-                    print 'state %s' % state
                     return fb.redirect(state)
 
             return view(request, *args, **kwargs)
@@ -512,7 +496,6 @@ class FacebookMiddleware(object):
         self.callback_path = callback_path or getattr(settings, 'FACEBOOK_CALLBACK_PATH', None)
         self.internal = internal or getattr(settings, 'FACEBOOK_INTERNAL', True)
         self.app_id = app_id or getattr(settings, 'FACEBOOK_APP_ID', None)
-        print 'APP ID: %s' % self.app_id
         self.oauth2 = oauth2 or getattr(settings, 'FACEBOOK_OAUTH2', False)
         self.oauth2_redirect = oauth2_redirect or getattr(settings, 'FACEBOOK_OAUTH2_REDIRECT', None)
         self.proxy = None
