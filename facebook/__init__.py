@@ -129,7 +129,7 @@ METHODS = {
         ],
         'getRestrictionInfo': [],
         'setRestrictionInfo': [
-            ('format', str, []),
+            ('format', str, ['optional']),
             ('callback', str, ['optional']),
             ('restriction_str', json, ['optional']),
         ],
