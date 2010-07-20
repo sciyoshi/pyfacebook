@@ -110,7 +110,7 @@ except ImportError:
 
 __all__ = ['Facebook','create_hmac']
 
-VERSION = '1.0a1'
+VERSION = '1.0a2'
 
 FACEBOOK_URL = 'http://api.facebook.com/restserver.php'
 FACEBOOK_VIDEO_URL = 'http://api-video.facebook.com/restserver.php'

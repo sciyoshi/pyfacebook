@@ -194,33 +194,31 @@ def require_oauth(redirect_path=None, keep_state=True,
         def newview(request, *args, **kwargs):
             # permissions=newview.permissions
 
-            fb = _check_middleware(request)
-
-            valid_token = fb.oauth2_check_session(request)
-
-            if required_permissions:
-                has_permissions = fb.oauth2_check_permissions(
-                    request, required_permissions, check_permissions,
-                    valid_token, force_check)
-            else:
-                has_permissions = True
-
-            if not valid_token or not has_permissions:
-                redirect_uri = fb.url_for(_redirect_path(redirect_path, fb, request.path))
-
-                if keep_state:
-                    if callable(keep_state):
-                        state = keep_state(request)
-                    else:
-                        state = request.get_full_path()
-                    # passing state directly to facebook oauth endpoint doesn't work
-                    redirect_uri += '?state=%s' % urlquote(state)
-
-                return fb.redirect(
-                    fb.get_login_url(next=redirect_uri,
-                        required_permissions=required_permissions)) 
-
-            return view(request, *args, **kwargs)
+            try:
+                fb = _check_middleware(request)
+    
+                valid_token = fb.oauth2_check_session(request)
+    
+                if required_permissions:
+                    has_permissions = fb.oauth2_check_permissions(
+                        request, required_permissions, check_permissions,
+                        valid_token, force_check)
+                else:
+                    has_permissions = True
+    
+                if not valid_token or not has_permissions:
+                    return _redirect_login(request, fb, redirect_path,
+                        keep_state, required_permissions)
+    
+                return view(request, *args, **kwargs)
+            except facebook.FacebookError as e:
+                # Invalid token (I think this can happen if the user logs out)
+                # Unfortunately we don't find this out until we use the api 
+                if e.code == 190:
+                    del request.session['oauth2_token']
+                    del request.session['oauth2_token_expires']
+                    return _redirect_login(request, fb, redirect_path,
+                        keep_state, required_permissions)
         # newview.permissions = permissions        
         return newview
     return decorator
@@ -238,6 +236,25 @@ def _redirect_path(redirect_path, fb, path):
     else:
         redirect_path = path
     return redirect_path
+
+def _redirect_login(request, fb, redirect_path, keep_state, required_permissions):
+    """
+    Fully resolve the redirect path for an oauth login and add in any state
+    info required to bring us back to the correct place afterwards
+    """
+    redirect_uri = fb.url_for(_redirect_path(redirect_path, fb, request.path))
+
+    if keep_state:
+        if callable(keep_state):
+            state = keep_state(request)
+        else:
+            state = request.get_full_path()
+        # passing state directly to facebook oauth endpoint doesn't work
+        redirect_uri += '?state=%s' % urlquote(state)
+
+    return fb.redirect(
+        fb.get_login_url(next=redirect_uri,
+            required_permissions=required_permissions)) 
 
 
 def process_oauth(restore_state=True):
