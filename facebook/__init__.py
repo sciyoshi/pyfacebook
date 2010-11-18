@@ -114,6 +114,31 @@ class json(object): pass
 
 # simple IDL for the Facebook API
 METHODS = {
+    #dashboard methods
+    'dashboard': {
+        'incrementCount': [
+            ('uid', int, ['optional'])
+        ],
+        'decrementCount': [
+            ('uid', int, ['optional'])
+        ],
+        'getCount': [
+            ('uid', int, ['optional'])
+        ],
+        'setCount': [
+            ('count', int, []),
+            ('uid', int, ['optional'])
+        ],
+        'getActivity': [
+            ('activity_ids', list, ['optional']),
+            ('uid', int, ['optional'])
+        ],
+        'publishActivity': [
+            ('activity', json, []),
+
+        ]
+
+    },
     'application': {
         'getPublicInfo': [
             ('application_id', int, ['optional']),
