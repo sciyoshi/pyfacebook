@@ -227,7 +227,7 @@ def require_oauth(redirect_path=None, keep_state=True, in_canvas=True,
                         keep_state, required_permissions)
     
                 return view(request, *args, **kwargs)
-            except facebook.FacebookError as e:
+            except facebook.FacebookError, e:
                 # Invalid token (I think this can happen if the user logs out)
                 # Unfortunately we don't find this out until we use the api 
                 if e.code == 190:
