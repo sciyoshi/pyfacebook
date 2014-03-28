@@ -1116,7 +1116,7 @@ class VideoProxy(VideoProxy):
             args['title'] = title
 
         if description is not None:
-            args['description'] = title
+            args['description'] = description
             
         if uid is not None:
             args['uid'] = uid
