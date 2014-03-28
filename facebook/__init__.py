@@ -1905,7 +1905,7 @@ class Facebook(object):
         if cookie_name in cookies:
             # value like
             # "access_token=104302089510310%7C2.HYYLow1Vlib0s_sJSAESjw__.3600.1275037200-100000214342553%7CtC1aolM22Lauj_dZhYnv_tF2CK4.&base_domain=yaycy.com&expires=1275037200&secret=FvIHkbAFwEy_0sueRk2ZYQ__&session_key=2.HYYoow1Vlib0s_sJSAESjw__.3600.1275037200-100000214342553&sig=7bb035a0411be7aa801964ae34416f28&uid=100000214342553"
-            params = dict([part.split('=') for part in cookies[cookie_name]])
+            params = dict([part.split('=') for part in cookies[cookie_name].split('&')])
             sig = params.pop('sig')
             hash = self._hash_args(params)
             if hash == sig:
