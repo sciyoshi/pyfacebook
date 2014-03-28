@@ -55,7 +55,6 @@ try:
     import hashlib
 except ImportError:
     import md5 as hashlib
-from django.conf import settings
 import binascii
 import urlparse
 import mimetypes
@@ -116,8 +115,8 @@ FACEBOOK_URL = 'http://api.facebook.com/restserver.php'
 FACEBOOK_VIDEO_URL = 'http://api-video.facebook.com/restserver.php'
 FACEBOOK_SECURE_URL = 'https://api.facebook.com/restserver.php'
 
-def create_hmac(tbhashed):
-    return hmac.new(settings.SECRET_KEY, tbhashed, hashlib.sha1).hexdigest()
+def create_hmac(key, tbhashed):
+    return hmac.new(key, tbhashed, hashlib.sha1).hexdigest()
 
 class json(object): pass
 
@@ -1325,7 +1324,8 @@ class Facebook(object):
     def __init__(self, api_key, secret_key, auth_token=None, app_name=None,
                  callback_path=None, internal=None, proxy=None,
                  facebook_url=None, facebook_secure_url=None,
-                 generate_session_secret=0, app_id=None, oauth2=False):
+                 generate_session_secret=0, app_id=None, oauth2=False,
+                 iframe_validation_timeout=10):
         """
         Initializes a new Facebook object which provides wrappers for the Facebook API.
 
@@ -1368,6 +1368,7 @@ class Facebook(object):
         self.profile_update_time = None
         self.ext_perms = []
         self.proxy = proxy
+        self.iframe_validation_timeout = iframe_validation_timeout
         if facebook_url is None:
             self.facebook_url = FACEBOOK_URL
         else:
@@ -1891,12 +1892,12 @@ class Facebook(object):
             return False
         request_time = request_dict['reqtime']
         time_now = int(time.time())
-        if time_now - int(request_time) > settings.FACEBOOK_IFRAME_VALIDATION_TIMEOUT:
+        if time_now - int(request_time) > self.iframe_validation_timeout:
             return False
         userid = int(request_dict['userid'])
         self.uid = userid
         app_sig = request_dict['appsig']
-        digest = create_hmac("%s%s" % (str(userid),str(request_time)))
+        digest = create_hmac(self.secret_key, "%s%s" % (str(userid),str(request_time)))
         return digest == app_sig
 
     def validate_oauth_cookie_signature(self, cookies):
