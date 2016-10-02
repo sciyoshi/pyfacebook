@@ -40,10 +40,11 @@ Facebook tools for Google AppEngine's object-oriented "webapp" framework.
 # useful and familiar for most AppEngine development.
 FACEBOOK_CONFIG = yaml.load(file('facebook.yaml', 'r'))
 
+
 class FacebookRequestHandler(RequestHandler):
     """
     Base class for request handlers for Facebook apps, providing useful
-    Facebook-related tools: a local 
+    Facebook-related tools: a local
     """
 
     def _fbconfig_value(self, name, default=None):
@@ -53,7 +54,7 @@ class FacebookRequestHandler(RequestHandler):
         """
         if name in FACEBOOK_CONFIG:
             default = FACEBOOK_CONFIG[name]
-            
+
         return getattr(self, name, default)
 
     def initialize(self, request, response):
@@ -67,7 +68,7 @@ class FacebookRequestHandler(RequestHandler):
         secret_key = self._fbconfig_value('secret_key', None)
 
         self.facebook = Facebook(api_key, secret_key,
-            app_name=app_name)
+                                 app_name=app_name)
 
         require_app = self._fbconfig_value('require_app', False)
         require_login = self._fbconfig_value('require_login', False)
@@ -83,7 +84,7 @@ class FacebookRequestHandler(RequestHandler):
                 self.redirecting = True
                 return
         elif check_session:
-            self.facebook.check_session(request) # ignore response
+            self.facebook.check_session(request)  # ignore response
 
         # NOTE: require_app is deprecated according to modern Facebook login
         #       policies. Included for completeness, but unnecessary.
@@ -136,6 +137,7 @@ class FacebookRequestHandler(RequestHandler):
             return self._messages
         return None
 
+
 class FacebookCanvasHandler(FacebookRequestHandler):
     """
     Request handler for Facebook canvas (FBML application) requests.
@@ -159,7 +161,8 @@ class FacebookCanvasHandler(FacebookRequestHandler):
         Check a couple of simple safety checks and then call the canvas
         handler.
         """
-        if self.redirecting: return
+        if self.redirecting:
+            return
 
         if not self.facebook.in_canvas:
             self.error(404)

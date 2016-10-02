@@ -90,7 +90,6 @@ except ImportError:
     pass
 else:
 
-
     class PylonsFacebook(Facebook):
 
         """Subclass Facebook to add Pylons goodies."""
@@ -119,7 +118,6 @@ else:
         def apps_url_for(self, *args, **kargs):
             """Like url_for, but starts with "http://apps.facebook.com"."""
             return "http://apps.facebook.com" + url_for(*args, **kargs)
-
 
     def create_pylons_facebook_middleware(app, config):
         """This is a simple wrapper for FacebookWSGIMiddleware.

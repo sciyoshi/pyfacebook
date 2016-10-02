@@ -10,7 +10,7 @@ def _2int(d, k):
         d = d.__dict__
     except:
         pass
-    
+
     t = d.get(k, '')
     if t == 'None':
         t = 0
@@ -18,9 +18,10 @@ def _2int(d, k):
         t = int(t)
     return t
 
+
 class UserManager(models.Manager):
     """Custom manager for a Facebook User."""
-    
+
     def get_current(self):
         """Gets a User object for the logged-in Facebook user."""
         facebook = get_facebook_client()
@@ -29,6 +30,7 @@ class UserManager(models.Manager):
             # we could do some custom actions for new users here...
             pass
         return user
+
 
 class User(models.Model):
     """A simple User model for Facebook users."""
